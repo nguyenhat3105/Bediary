@@ -1,0 +1,33 @@
+# ============================================
+# Backend (Spring Boot / Maven)
+# ============================================
+bediary-backend/target/
+bediary-backend/.mvn/
+bediary-backend/*.class
+bediary-backend/*.jar
+bediary-backend/*.war
+
+# ============================================
+# Frontend (Node.js / Vite)
+# ============================================
+bediary-frontend/node_modules/
+bediary-frontend/dist/
+bediary-frontend/.vite/
+
+# ============================================
+# IDE & OS
+# ============================================
+.idea/
+.vscode/settings.json
+*.iml
+.DS_Store
+Thumbs.db
+
+# ============================================
+# Secrets (NEVER commit these!)
+# ============================================
+.env
+.env.local
+.env.production
+application-prod.yml
+secrets.yml

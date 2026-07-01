@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: bediary-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bediary_db
+    # Thay 'postgres' bằng password bạn đã đặt khi cài PostgreSQL
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  jackson:
+    date-format: yyyy-MM-dd'T'HH:mm:ss'Z'
+    time-zone: UTC
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 55MB
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+bediary:
+  jwt:
+    secret: ${JWT_SECRET:change-me-to-a-very-long-secret-at-least-32-bytes}
+    expiration-ms: 86400000  # 24 hours
+
+  # Local file storage (no AWS required)
+  # Files saved to: {upload-dir}/families/{familyId}/{filename}
+  # Served at:      {base-url}/uploads/families/{familyId}/{filename}
+  upload-dir: ${UPLOAD_DIR:uploads}
+  base-url: ${BASE_URL:http://localhost:8080/api/v1}
+
+logging:
+  level:
+    com.bediary: DEBUG
+    org.springframework.security: DEBUG
+
+groq:
+  api-key: ${GROQ_API_KEY}
+  api-url: ${GROQ_API_URL:https://api.groq.com/openai/v1/chat/completions}
+  vision-model: ${GROQ_VISION_MODEL:meta-llama/llama-4-scout-17b-16e-instruct}

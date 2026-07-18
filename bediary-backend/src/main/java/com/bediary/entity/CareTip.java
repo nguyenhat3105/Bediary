@@ -35,9 +35,6 @@ public class CareTip {
     @Column(name = "source_type", nullable = false, length = 20)
     private String sourceType;
 
-    @Column(name = "is_premium", nullable = false)
-    private boolean isPremium = false;
-
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -50,7 +47,6 @@ public class CareTip {
     public String getTitle()      { return title; }
     public String getContent()    { return content; }
     public String getSourceType() { return sourceType; }
-    public boolean isPremium()    { return isPremium; }
     public Instant getCreatedAt() { return createdAt; }
 
     public void setId(UUID id)              { this.id = id; }
@@ -60,6 +56,5 @@ public class CareTip {
     public void setTitle(String v)          { this.title = v; }
     public void setContent(String v)        { this.content = v; }
     public void setSourceType(String v)     { this.sourceType = v; }
-    public void setPremium(boolean v)       { this.isPremium = v; }
     public void setCreatedAt(Instant t)     { this.createdAt = t; }
 }

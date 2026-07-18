@@ -30,6 +30,9 @@ public class MediaPost {
     @Column(name = "media_url", nullable = false, length = 500)
     private String mediaUrl;
 
+    @Column(name = "media_storage_path", length = 700)
+    private String mediaStoragePath;
+
     /** IMAGE | VIDEO stored as string */
     @Column(name = "media_type", nullable = false, length = 20)
     private String mediaType;
@@ -57,6 +60,7 @@ public class MediaPost {
     public Family getFamily()       { return family; }
     public User getUploadedBy()     { return uploadedBy; }
     public String getMediaUrl()     { return mediaUrl; }
+    public String getMediaStoragePath() { return mediaStoragePath; }
     public String getMediaType()    { return mediaType; }
     public String getCaption()      { return caption; }
     public int getReactionCount()   { return reactionCount; }
@@ -68,6 +72,7 @@ public class MediaPost {
     public void setFamily(Family f)         { this.family = f; }
     public void setUploadedBy(User u)       { this.uploadedBy = u; }
     public void setMediaUrl(String url)     { this.mediaUrl = url; }
+    public void setMediaStoragePath(String storagePath) { this.mediaStoragePath = storagePath; }
     public void setMediaType(String t)      { this.mediaType = t; }
     public void setCaption(String c)        { this.caption = c; }
     public void setReactionCount(int n)     { this.reactionCount = n; }
@@ -80,6 +85,7 @@ public class MediaPost {
         public Builder family(Family v)      { p.family = v; return this; }
         public Builder uploadedBy(User v)    { p.uploadedBy = v; return this; }
         public Builder mediaUrl(String v)    { p.mediaUrl = v; return this; }
+        public Builder mediaStoragePath(String v) { p.mediaStoragePath = v; return this; }
         public Builder mediaType(String v)   { p.mediaType = v; return this; }
         public Builder caption(String v)     { p.caption = v; return this; }
         public MediaPost build()             { return p; }

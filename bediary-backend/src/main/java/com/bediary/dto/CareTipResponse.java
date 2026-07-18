@@ -7,6 +7,5 @@ public record CareTipResponse(
         String category,
         String title,
         String content,
-        String sourceType,
-        boolean isPremium
+        String sourceType
 ) {}

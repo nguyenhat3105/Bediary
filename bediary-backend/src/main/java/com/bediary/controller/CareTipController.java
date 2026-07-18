@@ -24,7 +24,7 @@ public class CareTipController {
 
     /**
      * GET /api/v1/care/today
-     * Returns care tips for the baby's current age. Premium tips are filtered for free users.
+     * Returns all care tips applicable for the baby's current age.
      */
     @GetMapping("/today")
     public ResponseEntity<List<CareTipResponse>> getTodayTips(HttpServletRequest httpRequest) {

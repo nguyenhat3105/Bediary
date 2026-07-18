@@ -5,6 +5,8 @@ import { Clock, Pencil } from 'lucide-react'
 const ACTIVITY_CONFIG = {
   SLEEP: { icon: '☾', label: 'Ngủ', bg: '#F0EBFF', color: '#7C3AED' },
   FEED: { icon: '◐', label: 'Bú / ăn', bg: 'var(--c-primary-light)', color: 'var(--c-primary)' },
+  PEE: { icon: '💧', label: 'Đi tiểu', bg: '#EAF6FF', color: '#0EA5E9' },
+  POOP: { icon: '💩', label: 'Đi tiêu', bg: 'var(--c-warning-bg)', color: 'var(--c-warning)' },
   DIAPER: { icon: '◇', label: 'Thay tã', bg: 'var(--c-warning-bg)', color: 'var(--c-warning)' },
 }
 
@@ -15,6 +17,8 @@ function formatMetadata(type, metadata = {}) {
     if (metadata.food) parts.push(metadata.food)
   }
   if (type === 'SLEEP' && metadata.durationMinutes) parts.push(`${metadata.durationMinutes} phút`)
+  if (type === 'PEE') parts.push('Tã ướt')
+  if (type === 'POOP') parts.push('Đi tiêu')
   if (type === 'DIAPER' && metadata.diaper_type) {
     const label = { WET: 'Tã ướt', POOP: 'Đi ngoài', BOTH: 'Ướt và đi ngoài', DRY: 'Tã khô' }[metadata.diaper_type] || metadata.diaper_type
     parts.push(label)
@@ -23,7 +27,7 @@ function formatMetadata(type, metadata = {}) {
   return parts.length ? parts.join(' · ') : null
 }
 
-export default function TimelineFeed({ logs, loading, onEdit }) {
+export default function TimelineFeed({ logs, loading, onEdit, babyName }) {
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -67,7 +71,7 @@ export default function TimelineFeed({ logs, loading, onEdit }) {
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text-1)' }}>{cfg.label}</p>
                   <p style={{ fontSize: 12, color: 'var(--c-text-hint)', marginTop: 2, lineHeight: 1.45 }}>
-                    {log.createdByName || 'Gia đình'}
+                    {babyName || 'Bé yêu'}
                     {meta && <> · <span style={{ color: cfg.color, fontWeight: 500 }}>{meta}</span></>}
                   </p>
                 </div>

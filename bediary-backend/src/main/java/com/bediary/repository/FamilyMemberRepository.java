@@ -20,6 +20,8 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, UUID
 
     List<FamilyMember> findByFamilyId(UUID familyId);
 
+    List<FamilyMember> findByUserId(UUID userId);
+
     void deleteByFamilyId(UUID familyId);
 
     /**

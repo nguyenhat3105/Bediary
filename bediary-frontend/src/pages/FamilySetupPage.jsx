@@ -4,14 +4,13 @@ import { Heart, Users, Baby, Calendar, Copy } from 'lucide-react'
 import { familyApi } from '../api/api'
 
 const TABS = [
-  { id: 'create', label: 'Tao gia dinh', icon: Baby },
-  { id: 'join',   label: 'Tham gia gia dinh', icon: Users },
+  { id: 'create', label: 'Hồ sơ mới', icon: Baby },
+  { id: 'join',   label: 'Tham gia', icon: Users },
 ]
 
 const GENDER_OPTIONS = [
-  { value: 'MALE',   label: 'Be trai', emoji: 'boy' },
-  { value: 'FEMALE', label: 'Be gai',  emoji: 'girl' },
-  { value: 'OTHER',  label: 'Khac',    emoji: 'baby' },
+  { value: 'MALE',   label: 'Bé trai', emoji: 'boy' },
+  { value: 'FEMALE', label: 'Bé gái',  emoji: 'girl' },
 ]
 
 export default function FamilySetupPage() {
@@ -34,22 +33,51 @@ export default function FamilySetupPage() {
   // -------------------------------------------------------
   function resetError() { setError('') }
 
+  function unwrap(response) {
+    return response?.data ?? response ?? {}
+  }
+
+  function getApiError(err, fallback) {
+    const data = err?.response?.data
+    if (typeof data === 'string') return data
+    if (data?.message) return data.message
+    if (data?.fieldErrors) return Object.values(data.fieldErrors).join('. ')
+    return fallback
+  }
+
+  function persistFamilySession(data, role) {
+    const familyId = data.familyId || data.id
+    if (familyId) {
+      localStorage.setItem('bediary_family', JSON.stringify({ familyId }))
+    }
+    if (data.newToken) {
+      localStorage.setItem('bediary_token', data.newToken)
+    }
+    // Save role so useRole() hook reads correct value immediately
+    if (role) {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('bediary_user') || '{}')
+        localStorage.setItem('bediary_user', JSON.stringify({ ...currentUser, familyId, role }))
+      } catch { /* ignore */ }
+    }
+    return familyId
+  }
+
   // -------------------------------------------------------
   async function handleCreate(e) {
     e.preventDefault()
     resetError()
 
-    if (!babyNickname.trim()) { setError('Vui long nhap ten be.'); return }
-    if (!babyDob)             { setError('Vui long chon ngay sinh cua be.'); return }
+    if (!babyNickname.trim()) { setError('Vui lòng nhập tên bé.'); return }
+    if (!babyDob)             { setError('Vui lòng chọn ngày sinh của bé.'); return }
 
     setLoading(true)
     try {
-      const data = await familyApi.create({ babyNickname: babyNickname.trim(), babyGender, babyDob })
-      const familyId = data.familyId || data.id
-      localStorage.setItem('bediary_family', JSON.stringify({ familyId }))
+      const data = unwrap(await familyApi.create({ babyName: babyNickname.trim(), babyGender, babyDob }))
+      const familyId = persistFamilySession(data, 'PARENT')
       setCreateResult({ familyId, inviteCode: data.inviteCode })
     } catch (err) {
-      setError(err?.response?.data?.message || 'Co loi xay ra. Vui long thu lai.')
+      setError(getApiError(err, 'Có lỗi xảy ra. Vui lòng thử lại.'))
     } finally {
       setLoading(false)
     }
@@ -60,16 +88,15 @@ export default function FamilySetupPage() {
     e.preventDefault()
     resetError()
 
-    if (!inviteCode.trim()) { setError('Vui long nhap ma moi.'); return }
+    if (!inviteCode.trim()) { setError('Vui lòng nhập mã mời.'); return }
 
     setLoading(true)
     try {
-      const data = await familyApi.join({ inviteCode: inviteCode.trim() })
-      const familyId = data.familyId || data.id
-      localStorage.setItem('bediary_family', JSON.stringify({ familyId }))
+      const data = unwrap(await familyApi.join({ inviteCode: inviteCode.trim() }))
+      persistFamilySession(data, 'VIEWER')
       navigate('/')
     } catch (err) {
-      setError(err?.response?.data?.message || 'Ma moi khong hop le hoac da het han.')
+      setError(getApiError(err, 'Mã mời không hợp lệ hoặc đã hết hạn.'))
     } finally {
       setLoading(false)
     }
@@ -91,16 +118,16 @@ export default function FamilySetupPage() {
           <div style={styles.emojiHeader}>
             <span style={styles.bigEmoji}>🎉</span>
           </div>
-          <h1 style={styles.title}>Gia dinh da duoc tao!</h1>
+          <h1 style={styles.title}>Hồ sơ mới đã được tạo!</h1>
           <p style={styles.subtitle}>
-            Chia se ma moi voi nguoi than de ho tham gia nhat ky cung ban.
+            Chia sẻ mã mời với người thân để họ tham gia nhật ký cùng bạn.
           </p>
 
           <div style={styles.inviteBox}>
-            <span style={styles.inviteLabel}>Ma moi</span>
+            <span style={styles.inviteLabel}>Mã mời</span>
             <div style={styles.inviteRow}>
               <span style={styles.inviteCodeText}>{createResult.inviteCode}</span>
-              <button style={styles.copyBtn} onClick={copyInviteCode} title="Sao chep">
+              <button style={styles.copyBtn} onClick={copyInviteCode} title="Sao chép">
                 <Copy size={16} />
               </button>
             </div>
@@ -108,7 +135,7 @@ export default function FamilySetupPage() {
 
           <button style={styles.primaryBtn} onClick={() => navigate('/')}>
             <Heart size={18} style={{ marginRight: 8 }} />
-            Bat dau nhat ky
+            Bắt đầu nhật ký
           </button>
         </div>
       </div>
@@ -128,13 +155,13 @@ export default function FamilySetupPage() {
         </div>
 
         <h1 style={styles.title}>
-          {activeTab === 'create' ? 'Tao gia dinh cua ban' : 'Tham gia gia dinh'}
+          {activeTab === 'create' ? 'Tạo thông tin cho bé' : 'Tham gia'}
         </h1>
         <p style={styles.subtitle}>
           {activeTab === 'create'
-            ? 'Bat dau hanh trinh luu giu ky uc cung be yeu'
-            : 'Nhap ma moi tu thanh vien trong gia dinh'}
-        </p>
+            ? 'Bắt đầu hành trình lưu trữ cùng bé yêu'
+              : 'Nhập mã mời từ thành viên trong gia đình'}
+          </p>
 
         {/* Tab bar */}
         <div style={styles.tabBar}>
@@ -164,12 +191,12 @@ export default function FamilySetupPage() {
             <div style={styles.field}>
               <label style={styles.label}>
                 <Baby size={14} style={{ marginRight: 6 }} />
-                Ten goi yeu cua be
+                Tên gọi yêu của bé
               </label>
               <input
                 style={styles.input}
                 type="text"
-                placeholder="Vi du: Bo Bo, Cun Con..."
+                placeholder="Ví dụ: Bo Bo, Cun Con..."
                 value={babyNickname}
                 onChange={(e) => setBabyNickname(e.target.value)}
                 maxLength={50}
@@ -178,7 +205,7 @@ export default function FamilySetupPage() {
 
             {/* Baby gender */}
             <div style={styles.field}>
-              <label style={styles.label}>Gioi tinh</label>
+              <label style={styles.label}>Giới tính</label>
               <div style={styles.genderRow}>
                 {GENDER_OPTIONS.map((opt) => (
                   <button
@@ -200,7 +227,7 @@ export default function FamilySetupPage() {
             <div style={styles.field}>
               <label style={styles.label}>
                 <Calendar size={14} style={{ marginRight: 6 }} />
-                Ngay sinh cua be
+                Ngày sinh của bé
               </label>
               <input
                 style={styles.input}
@@ -212,10 +239,10 @@ export default function FamilySetupPage() {
             </div>
 
             <button style={{ ...styles.primaryBtn, ...(loading ? styles.btnDisabled : {}) }} type="submit" disabled={loading}>
-              {loading ? 'Dang tao...' : (
+              {loading ? 'Đang tạo...' : (
                 <>
                   <Heart size={16} style={{ marginRight: 8 }} />
-                  Tao gia dinh
+                  Xác nhận thông tin
                 </>
               )}
             </button>
@@ -228,12 +255,12 @@ export default function FamilySetupPage() {
             <div style={styles.field}>
               <label style={styles.label}>
                 <Users size={14} style={{ marginRight: 6 }} />
-                Ma moi gia dinh
+                Mã mời gia đình
               </label>
               <input
                 style={{ ...styles.input, letterSpacing: '0.15em', textTransform: 'uppercase' }}
                 type="text"
-                placeholder="Nhap ma moi..."
+                placeholder="Nhập mã mời..."
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 maxLength={20}
@@ -241,10 +268,10 @@ export default function FamilySetupPage() {
             </div>
 
             <button style={{ ...styles.primaryBtn, ...(loading ? styles.btnDisabled : {}) }} type="submit" disabled={loading}>
-              {loading ? 'Dang tham gia...' : (
+              {loading ? 'Đang tham gia...' : (
                 <>
                   <Users size={16} style={{ marginRight: 8 }} />
-                  Tham gia gia dinh
+                  Tham gia
                 </>
               )}
             </button>
@@ -253,13 +280,13 @@ export default function FamilySetupPage() {
 
         <p style={styles.hint}>
           {activeTab === 'create'
-            ? 'Ban da co gia dinh? '
-            : 'Chua co gia dinh? '}
+            ? 'Bạn đã có hồ sơ? '
+            : 'Chưa có hồ sơ? '}
           <button
             style={styles.switchLink}
             onClick={() => { setActiveTab(activeTab === 'create' ? 'join' : 'create'); resetError() }}
           >
-            {activeTab === 'create' ? 'Tham gia ngay' : 'Tao gia dinh'}
+            {activeTab === 'create' ? 'Tham gia ngay' : 'Xác nhận thông tin'}
           </button>
         </p>
       </div>

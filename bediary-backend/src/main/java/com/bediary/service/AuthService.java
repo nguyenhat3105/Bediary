@@ -1,6 +1,7 @@
 package com.bediary.service;
 
 import com.bediary.dto.AuthResponse;
+import com.bediary.dto.AuthSession;
 import com.bediary.dto.CurrentSessionResponse;
 import com.bediary.dto.LoginRequest;
 import com.bediary.dto.RegisterRequest;
@@ -10,8 +11,6 @@ import com.bediary.repository.FamilyMemberRepository;
 import com.bediary.repository.UserRepository;
 import com.bediary.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,10 +25,10 @@ public class AuthService {
     private final FamilyMemberRepository familyMemberRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final AuthenticationManager authenticationManager;
+    private final RefreshTokenService refreshTokenService;
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthSession register(RegisterRequest request) {
         String email = request.email().trim().toLowerCase();
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already registered: " + email);
@@ -42,27 +41,61 @@ public class AuthService {
                 .build();
 
         user = userRepository.save(user);
-        // New user has no family yet — familyId is null in token
-        String token = jwtUtil.generateToken(user.getId(), null, user.getEmail());
+        String accessToken = jwtUtil.generateToken(user.getId(), null, user.getEmail());
+        String refreshToken = refreshTokenService.issue(user, null).rawToken();
 
-        return new AuthResponse(token, user.getId(), user.getEmail(), user.getFullName(), null, user.getIsPremium());
+        return new AuthSession(
+                new AuthResponse(accessToken, user.getId(), user.getEmail(), user.getFullName(), null, null),
+                refreshToken
+        );
     }
 
-    public AuthResponse login(LoginRequest request) {
+    @Transactional
+    public AuthSession login(LoginRequest request) {
         String email = request.email().trim().toLowerCase();
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, request.password()));
-
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Tài khoản hoặc mật khẩu sai"));
 
-        // Resolve the user's primary family (if any)
-        UUID familyId = familyMemberRepository.findFirstByUserId(user.getId())
-                .map(fm -> fm.getFamily().getId())
-                .orElse(null);
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Sai mật khẩu");
+        }
 
-        String token = jwtUtil.generateToken(user.getId(), familyId, user.getEmail());
-        return new AuthResponse(token, user.getId(), user.getEmail(), user.getFullName(), familyId, user.getIsPremium());
+        FamilyMember membership = familyMemberRepository.findFirstByUserId(user.getId()).orElse(null);
+        UUID familyId = membership != null ? membership.getFamily().getId() : null;
+        String role = membership != null ? membership.getRole().name() : null;
+
+        String accessToken = jwtUtil.generateToken(user.getId(), familyId, user.getEmail());
+        String refreshToken = refreshTokenService.issue(user, familyId).rawToken();
+
+        return new AuthSession(
+                new AuthResponse(accessToken, user.getId(), user.getEmail(), user.getFullName(), familyId, role),
+                refreshToken
+        );
+    }
+
+    @Transactional
+    public AuthSession refresh(String rawRefreshToken) {
+        RefreshTokenService.RotationResult rotation = refreshTokenService.rotate(rawRefreshToken);
+        User user = rotation.previousToken().getUser();
+        UUID familyId = rotation.previousToken().getFamilyId();
+
+        FamilyMember membership = familyId != null
+                ? familyMemberRepository.findByFamilyIdAndUserId(familyId, user.getId()).orElse(null)
+                : familyMemberRepository.findFirstByUserId(user.getId()).orElse(null);
+
+        UUID resolvedFamilyId = membership != null ? membership.getFamily().getId() : null;
+        String role = membership != null ? membership.getRole().name() : null;
+
+        String accessToken = jwtUtil.generateToken(user.getId(), resolvedFamilyId, user.getEmail());
+        return new AuthSession(
+                new AuthResponse(accessToken, user.getId(), user.getEmail(), user.getFullName(), resolvedFamilyId, role),
+                rotation.newRawToken()
+        );
+    }
+
+    @Transactional
+    public void logout(String rawRefreshToken) {
+        refreshTokenService.revoke(rawRefreshToken);
     }
 
     @Transactional(readOnly = true)
@@ -75,7 +108,6 @@ public class AuthService {
                 user.getId(),
                 user.getEmail(),
                 user.getFullName(),
-                user.getIsPremium(),
                 membership != null ? membership.getFamily().getId() : null,
                 membership != null ? membership.getFamily().getBabyName() : null,
                 membership != null ? membership.getRole().name() : null

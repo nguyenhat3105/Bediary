@@ -24,45 +24,48 @@ public class VaccinationController {
     private final JwtUtil jwtUtil;
     private final FamilyMemberRepository familyMemberRepository;
 
-    /** GET /api/v1/vaccinations — both roles */
     @GetMapping
-    public ResponseEntity<List<VaccinationRecordResponse>> listRecords(
-            HttpServletRequest httpRequest) {
-        String token  = extractToken(httpRequest);
-        UUID userId   = jwtUtil.extractUserId(token);
+    public ResponseEntity<List<VaccinationRecordResponse>> listRecords(HttpServletRequest httpRequest) {
+        String token = extractToken(httpRequest);
+        UUID userId = jwtUtil.extractUserId(token);
         UUID familyId = resolveFamilyId(token, userId);
         return ResponseEntity.ok(vaccinationService.listRecords(familyId));
     }
 
-    /** POST /api/v1/vaccinations — ADMIN only */
     @PostMapping
     public ResponseEntity<VaccinationRecordResponse> createRecord(
             @Valid @RequestBody VaccinationRecordRequest request,
             HttpServletRequest httpRequest) {
-        String token  = extractToken(httpRequest);
-        UUID userId   = jwtUtil.extractUserId(token);
+        String token = extractToken(httpRequest);
+        UUID userId = jwtUtil.extractUserId(token);
         UUID familyId = resolveFamilyId(token, userId);
         return ResponseEntity.ok(vaccinationService.createRecord(request, userId, familyId));
     }
 
-    /** POST /api/v1/vaccinations/{id}/complete — ADMIN only */
     @PostMapping("/{id}/complete")
     public ResponseEntity<VaccinationRecordResponse> completeVaccination(
             @PathVariable UUID id,
             HttpServletRequest httpRequest) {
-        String token  = extractToken(httpRequest);
-        UUID userId   = jwtUtil.extractUserId(token);
+        String token = extractToken(httpRequest);
+        UUID userId = jwtUtil.extractUserId(token);
         UUID familyId = resolveFamilyId(token, userId);
         return ResponseEntity.ok(vaccinationService.completeVaccination(id, userId, familyId));
     }
 
-    /** DELETE /api/v1/vaccinations/{id} — ADMIN only */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRecord(
+    @PostMapping("/{id}/uncomplete")
+    public ResponseEntity<VaccinationRecordResponse> uncompleteVaccination(
             @PathVariable UUID id,
             HttpServletRequest httpRequest) {
-        String token  = extractToken(httpRequest);
-        UUID userId   = jwtUtil.extractUserId(token);
+        String token = extractToken(httpRequest);
+        UUID userId = jwtUtil.extractUserId(token);
+        UUID familyId = resolveFamilyId(token, userId);
+        return ResponseEntity.ok(vaccinationService.uncompleteVaccination(id, userId, familyId));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRecord(@PathVariable UUID id, HttpServletRequest httpRequest) {
+        String token = extractToken(httpRequest);
+        UUID userId = jwtUtil.extractUserId(token);
         UUID familyId = resolveFamilyId(token, userId);
         vaccinationService.deleteRecord(id, userId, familyId);
         return ResponseEntity.noContent().build();

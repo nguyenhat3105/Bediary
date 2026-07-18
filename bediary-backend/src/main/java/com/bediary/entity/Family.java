@@ -25,6 +25,12 @@ public class Family {
     @Enumerated(EnumType.STRING)
     private Gender babyGender;
 
+    @Column(name = "baby_avatar_url", length = 500)
+    private String babyAvatarUrl;
+
+    @Column(name = "baby_avatar_storage_path", length = 700)
+    private String babyAvatarStoragePath;
+
     @Column(name = "invite_code", unique = true, length = 20)
     private String inviteCode;
 
@@ -38,6 +44,8 @@ public class Family {
     public String getBabyName()   { return babyName; }
     public LocalDate getBabyDob() { return babyDob; }
     public Gender getBabyGender() { return babyGender; }
+    public String getBabyAvatarUrl() { return babyAvatarUrl; }
+    public String getBabyAvatarStoragePath() { return babyAvatarStoragePath; }
     public String getInviteCode() { return inviteCode; }
 
     // Setters
@@ -45,6 +53,8 @@ public class Family {
     public void setBabyName(String babyName)   { this.babyName = babyName; }
     public void setBabyDob(LocalDate babyDob)  { this.babyDob = babyDob; }
     public void setBabyGender(Gender g)        { this.babyGender = g; }
+    public void setBabyAvatarUrl(String avatarUrl) { this.babyAvatarUrl = avatarUrl; }
+    public void setBabyAvatarStoragePath(String storagePath) { this.babyAvatarStoragePath = storagePath; }
     public void setInviteCode(String code)     { this.inviteCode = code; }
 
     // Builder pattern
@@ -55,6 +65,8 @@ public class Family {
         public Builder babyName(String v)    { f.babyName = v; return this; }
         public Builder babyDob(LocalDate v)  { f.babyDob = v; return this; }
         public Builder babyGender(Gender v)  { f.babyGender = v; return this; }
+        public Builder babyAvatarUrl(String v) { f.babyAvatarUrl = v; return this; }
+        public Builder babyAvatarStoragePath(String v) { f.babyAvatarStoragePath = v; return this; }
         public Builder inviteCode(String v)  { f.inviteCode = v; return this; }
         public Family build()                { return f; }
     }

@@ -28,11 +28,8 @@ public class User {
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
-    @Column(name = "is_premium")
-    private Boolean isPremium = false;
-
-    @Column(name = "premium_expires_at")
-    private Instant premiumExpiresAt;
+    @Column(name = "avatar_storage_path", length = 700)
+    private String avatarStoragePath;
 
     @Column(name = "fcm_token", length = 500)
     private String fcmToken;
@@ -50,8 +47,7 @@ public class User {
     public String getPasswordHash()       { return passwordHash; }
     public String getFullName()           { return fullName; }
     public String getAvatarUrl()          { return avatarUrl; }
-    public Boolean getIsPremium()         { return isPremium; }
-    public Instant getPremiumExpiresAt()  { return premiumExpiresAt; }
+    public String getAvatarStoragePath()  { return avatarStoragePath; }
     public String getFcmToken()           { return fcmToken; }
     public Instant getCreatedAt()         { return createdAt; }
 
@@ -61,8 +57,7 @@ public class User {
     public void setPasswordHash(String passwordHash)    { this.passwordHash = passwordHash; }
     public void setFullName(String fullName)            { this.fullName = fullName; }
     public void setAvatarUrl(String avatarUrl)          { this.avatarUrl = avatarUrl; }
-    public void setIsPremium(Boolean isPremium)         { this.isPremium = isPremium; }
-    public void setPremiumExpiresAt(Instant t)          { this.premiumExpiresAt = t; }
+    public void setAvatarStoragePath(String storagePath){ this.avatarStoragePath = storagePath; }
     public void setFcmToken(String fcmToken)            { this.fcmToken = fcmToken; }
     public void setCreatedAt(Instant createdAt)         { this.createdAt = createdAt; }
 
@@ -75,7 +70,7 @@ public class User {
         public Builder passwordHash(String v)   { user.passwordHash = v; return this; }
         public Builder fullName(String v)       { user.fullName = v; return this; }
         public Builder avatarUrl(String v)      { user.avatarUrl = v; return this; }
-        public Builder isPremium(Boolean v)     { user.isPremium = v; return this; }
+        public Builder avatarStoragePath(String v) { user.avatarStoragePath = v; return this; }
         public User build()                     { return user; }
     }
 }

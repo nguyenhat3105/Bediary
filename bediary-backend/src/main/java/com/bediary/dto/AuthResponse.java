@@ -8,5 +8,5 @@ public record AuthResponse(
         String email,
         String fullName,
         UUID familyId,
-        Boolean isPremium
+        String role
 ) {}

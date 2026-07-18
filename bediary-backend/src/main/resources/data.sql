@@ -58,7 +58,7 @@ VALUES
 
 -- ── 91–120 days (4 months) ───────────────────────────────────────────────────
 (gen_random_uuid(), 91, 120, 'MILESTONE', 'Bé bắt đầu phát âm',
- 'Tháng thứ 4, bé bắt đầu bi bô, phát ra các âm nguyên âm như "a", "e", "ô". Hãy bắt chước và phản hồi lại để khuyến khích phát triển ngôn ngữ.',
+ 'Tháng thứ 4, bé bắt đầu bi bô, phát ra các âm nguyên âm như "a", "e", "ư". Hãy bắt chước và phản hồi lại để khuyến khích phát triển ngôn ngữ.',
  'MEDICAL', false, now()),
 
 (gen_random_uuid(), 91, 120, 'TIP', 'Nhận biết dấu hiệu mọc răng',

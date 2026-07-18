@@ -10,6 +10,7 @@ public record DashboardResponse(
         String babyName,
         LocalDate babyBirthday,
         String babyNickname,
+        String babyAvatarUrl,
         /** e.g. "1 tuổi 2 tháng 5 ngày" */
         String babyAgeText,
         long babyAgeDays,

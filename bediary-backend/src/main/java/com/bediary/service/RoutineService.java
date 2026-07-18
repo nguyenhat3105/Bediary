@@ -29,7 +29,7 @@ public class RoutineService {
 
     @Transactional
     public RoutineResponse createRoutine(RoutineRequest request, UUID userId, UUID familyId) {
-        requireAdmin(userId, familyId);
+        requireParentManager(userId, familyId);
         Family family = familyRepository.findById(familyId)
                 .orElseThrow(() -> new IllegalArgumentException("Family not found"));
 
@@ -51,7 +51,7 @@ public class RoutineService {
 
     @Transactional
     public RoutineResponse updateRoutine(UUID routineId, RoutineRequest request, UUID userId, UUID familyId) {
-        requireAdmin(userId, familyId);
+        requireParentManager(userId, familyId);
         Routine routine = getRoutineForFamily(routineId, familyId);
         routine.setLabel(request.label());
         routine.setActivityType(request.activityType());
@@ -61,7 +61,7 @@ public class RoutineService {
 
     @Transactional
     public void deleteRoutine(UUID routineId, UUID userId, UUID familyId) {
-        requireAdmin(userId, familyId);
+        requireParentManager(userId, familyId);
         Routine routine = getRoutineForFamily(routineId, familyId);
         routine.setActive(false);
         routineRepository.save(routine);
@@ -70,7 +70,7 @@ public class RoutineService {
     @Transactional
     public RoutineLogResponse logRoutine(UUID routineId, RoutineLogRequest request,
                                          UUID userId, UUID familyId) {
-        requireAdmin(userId, familyId);
+        requireCareLogger(userId, familyId);
         Family family = familyRepository.findById(familyId)
                 .orElseThrow(() -> new IllegalArgumentException("Family not found"));
         User user = userRepository.findById(userId)
@@ -118,7 +118,7 @@ public class RoutineService {
     @Transactional
     public RoutineResponse rescheduleRoutine(UUID routineId, LocalTime newTime,
                                               UUID userId, UUID familyId) {
-        requireAdmin(userId, familyId);
+        requireParentManager(userId, familyId);
         Routine routine = getRoutineForFamily(routineId, familyId);
         routine.setScheduledTime(newTime);
         return toResponse(routineRepository.save(routine));
@@ -126,12 +126,28 @@ public class RoutineService {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private void requireAdmin(UUID userId, UUID familyId) {
+    private void requireParentManager(UUID userId, UUID familyId) {
         FamilyMember member = familyMemberRepository.findByFamilyIdAndUserId(familyId, userId)
                 .orElseThrow(() -> new AccessDeniedException("Not a family member"));
-        if (member.getRole() == FamilyMember.Role.VIEWER) {
-            throw new AccessDeniedException("VIEWER role is not allowed to modify routines");
+        if (!canManageRoutine(member.getRole())) {
+            throw new AccessDeniedException("Ch? ba m? m?i c? th? qu?n l? l?ch sinh ho?t");
         }
+    }
+
+    private void requireCareLogger(UUID userId, UUID familyId) {
+        FamilyMember member = familyMemberRepository.findByFamilyIdAndUserId(familyId, userId)
+                .orElseThrow(() -> new AccessDeniedException("Not a family member"));
+        if (!canLogRoutine(member.getRole())) {
+            throw new AccessDeniedException("T?i kho?n n?y ch?a c? quy?n ghi nh?n l?ch sinh ho?t");
+        }
+    }
+
+    private boolean canManageRoutine(FamilyMember.Role role) {
+        return role == FamilyMember.Role.PARENT || role == FamilyMember.Role.ADMIN;
+    }
+
+    private boolean canLogRoutine(FamilyMember.Role role) {
+        return role == FamilyMember.Role.PARENT || role == FamilyMember.Role.CAREGIVER || role == FamilyMember.Role.ADMIN;
     }
 
     private Routine getRoutineForFamily(UUID routineId, UUID familyId) {

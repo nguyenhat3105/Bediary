@@ -14,7 +14,7 @@
 --        psql -U postgres -d bediary_db -f bediary_test_seed.sql
 --
 -- Test accounts:
---   ADMIN  email: parent@bediary.test   password: password123
+--   PARENT email: parent@bediary.test   password: password123
 --   VIEWER email: grandma@bediary.test  password: password123
 --
 -- Invite code:
@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash varchar(255) NOT NULL,
     full_name varchar(100) NOT NULL,
     avatar_url varchar(500),
+    avatar_storage_path varchar(700),
     is_premium boolean DEFAULT false,
     premium_expires_at timestamp,
     fcm_token varchar(500),
@@ -42,6 +43,8 @@ CREATE TABLE IF NOT EXISTS families (
     baby_name varchar(100) NOT NULL,
     baby_dob date NOT NULL,
     baby_gender varchar(10),
+    baby_avatar_url varchar(500),
+    baby_avatar_storage_path varchar(700),
     invite_code varchar(20) UNIQUE
 );
 
@@ -125,6 +128,7 @@ CREATE TABLE IF NOT EXISTS media_posts (
     family_id uuid NOT NULL REFERENCES families(id),
     uploaded_by uuid NOT NULL REFERENCES users(id),
     media_url varchar(500) NOT NULL,
+    media_storage_path varchar(700),
     media_type varchar(20) NOT NULL,
     caption text,
     reaction_count integer NOT NULL DEFAULT 0,
@@ -132,6 +136,16 @@ CREATE TABLE IF NOT EXISTS media_posts (
     ai_captions jsonb,
     created_at timestamp DEFAULT now()
 );
+
+ALTER TABLE IF EXISTS users
+  ADD COLUMN IF NOT EXISTS avatar_storage_path varchar(700);
+
+ALTER TABLE IF EXISTS families
+  ADD COLUMN IF NOT EXISTS baby_avatar_url varchar(500),
+  ADD COLUMN IF NOT EXISTS baby_avatar_storage_path varchar(700);
+
+ALTER TABLE IF EXISTS media_posts
+  ADD COLUMN IF NOT EXISTS media_storage_path varchar(700);
 
 CREATE TABLE IF NOT EXISTS post_reactions (
     id uuid PRIMARY KEY,
@@ -234,7 +248,7 @@ INSERT INTO family_members (id, family_id, user_id, role) VALUES
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     '11111111-1111-1111-1111-111111111111',
-    'ADMIN'
+    'PARENT'
 ),
 (
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2',

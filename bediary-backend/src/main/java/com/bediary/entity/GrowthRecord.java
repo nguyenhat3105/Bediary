@@ -44,6 +44,21 @@ public class GrowthRecord {
     @Column(name = "height_status", length = 20)
     private String heightStatus;
 
+    @Column(name = "weight_z_score")
+    private Double weightZScore;
+
+    @Column(name = "height_z_score")
+    private Double heightZScore;
+
+    @Column(name = "weight_percentile")
+    private Double weightPercentile;
+
+    @Column(name = "height_percentile")
+    private Double heightPercentile;
+
+    @Column(name = "growth_source", length = 120)
+    private String growthSource;
+
     public GrowthRecord() {}
 
     public UUID getId()                 { return id; }
@@ -55,6 +70,11 @@ public class GrowthRecord {
     public int getAgeDays()             { return ageDays; }
     public String getWeightStatus()     { return weightStatus; }
     public String getHeightStatus()     { return heightStatus; }
+    public Double getWeightZScore()      { return weightZScore; }
+    public Double getHeightZScore()      { return heightZScore; }
+    public Double getWeightPercentile()  { return weightPercentile; }
+    public Double getHeightPercentile()  { return heightPercentile; }
+    public String getGrowthSource()      { return growthSource; }
 
     public void setId(UUID id)               { this.id = id; }
     public void setFamily(Family f)          { this.family = f; }
@@ -65,6 +85,11 @@ public class GrowthRecord {
     public void setAgeDays(int v)            { this.ageDays = v; }
     public void setWeightStatus(String s)    { this.weightStatus = s; }
     public void setHeightStatus(String s)    { this.heightStatus = s; }
+    public void setWeightZScore(Double v)     { this.weightZScore = v; }
+    public void setHeightZScore(Double v)     { this.heightZScore = v; }
+    public void setWeightPercentile(Double v) { this.weightPercentile = v; }
+    public void setHeightPercentile(Double v) { this.heightPercentile = v; }
+    public void setGrowthSource(String v)     { this.growthSource = v; }
 
     public static Builder builder() { return new Builder(); }
     public static class Builder {
@@ -77,6 +102,11 @@ public class GrowthRecord {
         public Builder ageDays(int v)           { r.ageDays = v; return this; }
         public Builder weightStatus(String v)   { r.weightStatus = v; return this; }
         public Builder heightStatus(String v)   { r.heightStatus = v; return this; }
+        public Builder weightZScore(Double v)   { r.weightZScore = v; return this; }
+        public Builder heightZScore(Double v)   { r.heightZScore = v; return this; }
+        public Builder weightPercentile(Double v){ r.weightPercentile = v; return this; }
+        public Builder heightPercentile(Double v){ r.heightPercentile = v; return this; }
+        public Builder growthSource(String v)   { r.growthSource = v; return this; }
         public GrowthRecord build()             { return r; }
     }
 }

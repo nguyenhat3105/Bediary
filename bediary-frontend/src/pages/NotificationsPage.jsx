@@ -57,7 +57,7 @@ function NotificationItem({ notification, onMarkRead }) {
       {/* Content */}
       <div style={itemStyles.content}>
         <p style={{ ...itemStyles.message, fontWeight: unread ? 700 : 400 }}>
-          {notification.message || notification.title || 'Thong bao moi'}
+          {notification.message || notification.title || 'Thông báo mới'}
         </p>
         <span style={itemStyles.time}>{timeAgo(notification.createdAt)}</span>
       </div>
@@ -93,7 +93,7 @@ export default function NotificationsPage() {
       setTotalPages(data.totalPages ?? 1)
       setUnreadCount(data.unreadCount ?? 0)
     } catch (err) {
-      setError('Khong the tai thong bao. Vui long thu lai.')
+      setError('Không thể tải thông báo. Vui lòng thử lại.')
     } finally {
       setLoading(false)
       setLoadingMore(false)
@@ -124,7 +124,7 @@ export default function NotificationsPage() {
       setItems((prev) => prev.map((n) => ({ ...n, read: true })))
       setUnreadCount(0)
     } catch {
-      setError('Khong the danh dau tat ca da doc.')
+      setError('Không thể đánh dấu tất cả đã đọc.')
     }
   }
 
@@ -146,7 +146,7 @@ export default function NotificationsPage() {
         {/* Header */}
         <div style={pageStyles.header}>
           <div style={pageStyles.titleRow}>
-            <h1 style={pageStyles.title}>Thong bao</h1>
+            <h1 style={pageStyles.title}>Thông báo</h1>
             {unreadCount > 0 && (
               <span style={pageStyles.badge}>{unreadCount}</span>
             )}
@@ -155,7 +155,7 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button style={pageStyles.markAllBtn} onClick={handleMarkAllRead}>
               <CheckCheck size={15} style={{ marginRight: 6 }} />
-              Danh dau tat ca da doc
+              Đánh dấu tất cả đã đọc
             </button>
           )}
         </div>
@@ -176,9 +176,9 @@ export default function NotificationsPage() {
         {!loading && items.length === 0 && !error && (
           <div style={pageStyles.empty}>
             <span style={{ fontSize: 56 }}>🔔</span>
-            <p style={pageStyles.emptyTitle}>Chua co thong bao nao</p>
+            <p style={pageStyles.emptyTitle}>Chưa có thông báo nào</p>
             <p style={pageStyles.emptySubtitle}>
-              Cac thong bao ve be yeu se hien thi o day.
+              Các thông báo về bé yêu sẽ hiển thị ở đây.
             </p>
           </div>
         )}
@@ -204,7 +204,7 @@ export default function NotificationsPage() {
               onClick={handleLoadMore}
               disabled={loadingMore}
             >
-              {loadingMore ? 'Dang tai...' : 'Xem them'}
+              {loadingMore ? 'Đang tải...' : 'Xem thêm'}
             </button>
           </div>
         )}

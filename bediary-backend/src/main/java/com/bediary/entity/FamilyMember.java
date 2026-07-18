@@ -27,7 +27,7 @@ public class FamilyMember {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    public enum Role { ADMIN, VIEWER }
+    public enum Role { ADMIN, PARENT, CAREGIVER, VIEWER }
 
     // Constructors
     public FamilyMember() {}

@@ -11,6 +11,11 @@ public record GrowthRecordResponse(
         BigDecimal heightCm,
         String weightStatus,
         String heightStatus,
+        Double weightZScore,
+        Double heightZScore,
+        Double weightPercentile,
+        Double heightPercentile,
+        String growthSource,
         /** Friendly Vietnamese status text with emoji */
         String statusText,
         /** Optional advice based on WHO status */

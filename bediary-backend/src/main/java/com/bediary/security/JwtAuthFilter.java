@@ -16,6 +16,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Component
@@ -33,7 +34,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String token = extractTokenFromRequest(request);
 
-        if (token != null && jwtUtil.isTokenValid(token)) {
+        if (token != null && !jwtUtil.isTokenValid(token)) {
+            writeUnauthorizedResponse(response);
+            return;
+        }
+
+        if (token != null) {
             try {
                 UUID userId = jwtUtil.extractUserId(token);
                 UserDetails userDetails = userDetailsService.loadUserById(userId);
@@ -46,10 +52,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception e) {
                 log.error("Could not set user authentication: {}", e.getMessage());
+                writeUnauthorizedResponse(response);
+                return;
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void writeUnauthorizedResponse(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("""
+                {"status":401,"error":"Unauthorized","message":"Phi\u00ean \u0111\u0103ng nh\u1eadp \u0111\u00e3 h\u1ebft h\u1ea1n. Vui l\u00f2ng \u0111\u0103ng nh\u1eadp l\u1ea1i."}
+                """);
     }
 
     private String extractTokenFromRequest(HttpServletRequest request) {

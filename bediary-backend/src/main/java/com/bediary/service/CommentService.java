@@ -20,6 +20,7 @@ public class CommentService {
     private final MediaPostRepository mediaPostRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final UserRepository userRepository;
+    private final MediaStorageService mediaStorageService;
 
     @Transactional
     public PostCommentResponse addComment(UUID postId, PostCommentRequest request, UUID userId, UUID familyId) {
@@ -67,11 +68,13 @@ public class CommentService {
         }
 
         boolean isOwner = comment.getUser().getId().equals(userId);
-        boolean isAdmin = familyMemberRepository.findByFamilyIdAndUserId(familyId, userId)
-                .map(m -> m.getRole() == FamilyMember.Role.ADMIN)
+        boolean canModerate = familyMemberRepository.findByFamilyIdAndUserId(familyId, userId)
+                .map(m -> m.getRole() == FamilyMember.Role.PARENT
+                        || m.getRole() == FamilyMember.Role.CAREGIVER
+                        || m.getRole() == FamilyMember.Role.ADMIN)
                 .orElse(false);
 
-        if (!isOwner && !isAdmin) {
+        if (!isOwner && !canModerate) {
             throw new AccessDeniedException("You can only delete your own comments");
         }
 
@@ -87,8 +90,9 @@ public class CommentService {
         return new PostCommentResponse(
                 c.getId(),
                 c.getContent(),
+                c.getUser().getId(),
                 c.getUser().getFullName(),
-                c.getUser().getAvatarUrl(),
+                mediaStorageService.resolveUrl(c.getUser().getAvatarStoragePath(), c.getUser().getAvatarUrl()),
                 c.getCreatedAt()
         );
     }

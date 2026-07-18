@@ -9,5 +9,9 @@ public record MediaPostResponse(
         String mediaType,
         String caption,
         String uploadedByName,
-        Instant createdAt
+        String uploadedByAvatar,
+        Instant createdAt,
+        int reactionCount,
+        int commentCount,
+        boolean reacted
 ) {}

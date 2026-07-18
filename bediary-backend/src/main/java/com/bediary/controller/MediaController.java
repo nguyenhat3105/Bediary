@@ -48,7 +48,7 @@ public class MediaController {
         UUID userId = jwtUtil.extractUserId(token);
         UUID familyId = resolveFamilyId(token, userId);
 
-        return ResponseEntity.ok(mediaService.getFeed(familyId, page, size));
+        return ResponseEntity.ok(mediaService.getFeed(familyId, userId, page, size));
     }
 
     /**
@@ -76,7 +76,7 @@ public class MediaController {
 
     /**
      * POST /api/v1/media/{id}/react
-     * Toggles a reaction on a post. Both ADMIN and VIEWER roles allowed.
+     * Toggles a reaction on a post. All family members can use this endpoint.
      */
     @PostMapping("/{id}/react")
     public ResponseEntity<PostReactionResponse> toggleReaction(
@@ -104,7 +104,7 @@ public class MediaController {
 
     /**
      * POST /api/v1/media/{id}/comments
-     * Adds a comment to a post. Both ADMIN and VIEWER roles allowed.
+     * Adds a comment to a post. All family members can use this endpoint.
      */
     @PostMapping("/{id}/comments")
     public ResponseEntity<PostCommentResponse> addComment(
@@ -119,7 +119,7 @@ public class MediaController {
 
     /**
      * DELETE /api/v1/media/{postId}/comments/{commentId}
-     * Deletes a comment. Only the comment owner or an ADMIN can delete.
+     * Deletes a comment. Only the comment owner, parent, caregiver, or system admin can delete.
      */
     @DeleteMapping("/{postId}/comments/{commentId}")
     public ResponseEntity<Void> deleteComment(

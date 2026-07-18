@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Sparkles, Image, Copy, Loader2, Send } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import { aiApi } from '../api/api'

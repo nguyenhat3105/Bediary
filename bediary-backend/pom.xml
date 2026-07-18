@@ -90,6 +90,12 @@
         </dependency>
 
         <!-- RestClient for Groq API (built-in Spring Boot 3.2, no extra dep needed) -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.2</version>
+        </dependency>
+
         <!-- Spring Boot Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

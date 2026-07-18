@@ -6,12 +6,14 @@ import java.util.UUID;
 
 public record VaccinationRecordResponse(
         UUID id,
+        String scheduleKey,
         String vaccineName,
         int doseNumber,
         LocalDate scheduledDate,
+        String category,
+        String ageLabel,
         Instant completedAt,
         String notes,
-        /** True when scheduledDate < today and completedAt is null */
         boolean isOverdue,
         Instant createdAt
 ) {}

@@ -25,7 +25,7 @@ public class RoutineController {
     private final JwtUtil jwtUtil;
     private final FamilyMemberRepository familyMemberRepository;
 
-    /** GET /api/v1/routines — both ADMIN and VIEWER */
+    /** GET /api/v1/routines — all family roles */
     @GetMapping
     public ResponseEntity<List<RoutineResponse>> getRoutines(HttpServletRequest httpRequest) {
         String token  = extractToken(httpRequest);
@@ -33,7 +33,7 @@ public class RoutineController {
         return ResponseEntity.ok(routineService.getRoutines(familyId));
     }
 
-    /** POST /api/v1/routines — ADMIN only */
+    /** POST /api/v1/routines — PARENT only */
     @PostMapping
     public ResponseEntity<RoutineResponse> createRoutine(
             @Valid @RequestBody RoutineRequest request,
@@ -44,7 +44,7 @@ public class RoutineController {
         return ResponseEntity.ok(routineService.createRoutine(request, userId, familyId));
     }
 
-    /** PUT /api/v1/routines/{id} — ADMIN only */
+    /** PUT /api/v1/routines/{id} — PARENT only */
     @PutMapping("/{id}")
     public ResponseEntity<RoutineResponse> updateRoutine(
             @PathVariable UUID id,
@@ -56,7 +56,7 @@ public class RoutineController {
         return ResponseEntity.ok(routineService.updateRoutine(id, request, userId, familyId));
     }
 
-    /** DELETE /api/v1/routines/{id} — ADMIN only (soft-delete) */
+    /** DELETE /api/v1/routines/{id} — PARENT only (soft-delete) */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRoutine(
             @PathVariable UUID id,
@@ -68,7 +68,7 @@ public class RoutineController {
         return ResponseEntity.noContent().build();
     }
 
-    /** POST /api/v1/routines/{id}/log — ADMIN only */
+    /** POST /api/v1/routines/{id}/log — PARENT only */
     @PostMapping("/{id}/log")
     public ResponseEntity<RoutineLogResponse> logRoutine(
             @PathVariable UUID id,
@@ -80,7 +80,7 @@ public class RoutineController {
         return ResponseEntity.ok(routineService.logRoutine(id, request, userId, familyId));
     }
 
-    /** PATCH /api/v1/routines/{id}/reschedule — ADMIN only */
+    /** PATCH /api/v1/routines/{id}/reschedule — PARENT only */
     @PatchMapping("/{id}/reschedule")
     public ResponseEntity<RoutineResponse> rescheduleRoutine(
             @PathVariable UUID id,

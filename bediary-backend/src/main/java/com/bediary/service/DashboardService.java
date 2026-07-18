@@ -22,17 +22,15 @@ public class DashboardService {
     private final MediaPostRepository mediaPostRepository;
     private final RoutineRepository routineRepository;
     private final GrowthRecordRepository growthRecordRepository;
+    private final PostReactionRepository postReactionRepository;
     private final StreakService streakService;
-    private final UserRepository userRepository;
+    private final MediaStorageService mediaStorageService;
 
     @Transactional(readOnly = true)
     public DashboardResponse getDashboard(UUID userId, UUID familyId) {
 
         Family family = familyRepository.findById(familyId)
                 .orElseThrow(() -> new IllegalArgumentException("Family not found"));
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         // ── Baby age calculation ─────────────────────────────────────────
         LocalDate today = LocalDate.now();
@@ -64,12 +62,10 @@ public class DashboardService {
         List<CareTip> allTips = careTipRepository
                 .findByStartDayLessThanEqualAndEndDayGreaterThanEqual(ageDays, ageDays);
 
-        boolean isPremium = Boolean.TRUE.equals(user.getIsPremium());
         List<CareTipResponse> tipResponses = allTips.stream()
-                .filter(t -> !t.isPremium() || isPremium)
                 .map(t -> new CareTipResponse(
                         t.getId(), t.getCategory(), t.getTitle(),
-                        t.getContent(), t.getSourceType(), t.isPremium()))
+                        t.getContent(), t.getSourceType()))
                 .toList();
 
         // ── Latest 3 media posts ─────────────────────────────────────────
@@ -77,7 +73,7 @@ public class DashboardService {
                 .findByFamilyIdOrderByCreatedAtDesc(familyId,
                         org.springframework.data.domain.PageRequest.of(0, 3))
                 .stream()
-                .map(this::toPostResponse)
+                .map(post -> toPostResponse(post, userId))
                 .toList();
 
         // ── Streak ──────────────────────────────────────────────────────
@@ -103,6 +99,7 @@ public class DashboardService {
                 family.getBabyName(),
                 family.getBabyDob(),
                 family.getBabyName(),
+                mediaStorageService.resolveUrl(family.getBabyAvatarStoragePath(), family.getBabyAvatarUrl()),
                 ageText,
                 totalDays,
                 vacSummaries,
@@ -114,14 +111,18 @@ public class DashboardService {
         );
     }
 
-    private MediaPostResponse toPostResponse(MediaPost p) {
+    private MediaPostResponse toPostResponse(MediaPost p, UUID userId) {
         return new MediaPostResponse(
                 p.getId(),
-                p.getMediaUrl(),
+                mediaStorageService.resolveUrl(p.getMediaStoragePath(), p.getMediaUrl()),
                 p.getMediaType(),
                 p.getCaption(),
                 p.getUploadedBy().getFullName(),
-                p.getCreatedAt()
+                mediaStorageService.resolveUrl(p.getUploadedBy().getAvatarStoragePath(), p.getUploadedBy().getAvatarUrl()),
+                p.getCreatedAt(),
+                p.getReactionCount(),
+                p.getCommentCount(),
+                postReactionRepository.existsByPostIdAndUserId(p.getId(), userId)
         );
     }
 }

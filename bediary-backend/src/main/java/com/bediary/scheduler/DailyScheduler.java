@@ -67,9 +67,9 @@ public class DailyScheduler {
                         family.getId(), today, in7Days);
 
         for (VaccinationRecord record : upcoming) {
-            // Notify all ADMIN members of the family
+            // Notify parents; ADMIN is reserved for system-level accounts.
             familyMemberRepository.findByFamilyId(family.getId()).forEach(member -> {
-                if (member.getRole().name().equals("ADMIN")) {
+                if (member.getRole().name().equals("PARENT") || member.getRole().name().equals("ADMIN")) {
                     long daysUntil = today.until(record.getScheduledDate(),
                             java.time.temporal.ChronoUnit.DAYS);
                     String title = "💉 Nhắc nhở tiêm phòng";

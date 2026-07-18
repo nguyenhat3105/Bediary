@@ -26,5 +26,11 @@ public interface TrackingLogRepository extends JpaRepository<TrackingLog, UUID> 
             @Param("startOfDay") Instant startOfDay,
             @Param("endOfDay") Instant endOfDay);
 
+    @Query("SELECT t FROM TrackingLog t WHERE t.family.id = :familyId " +
+           "AND t.startTime >= :fromTime ORDER BY t.startTime DESC")
+    List<TrackingLog> findRecentLogs(
+            @Param("familyId") UUID familyId,
+            @Param("fromTime") Instant fromTime);
+
     void deleteByFamilyId(UUID familyId);
 }

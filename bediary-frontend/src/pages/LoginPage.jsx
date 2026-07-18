@@ -16,9 +16,9 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const res = await authApi.login(form)
-      const { token, userId, email, fullName, familyId, isPremium } = res.data
+      const { token, userId, email, fullName, familyId, role } = res.data
       localStorage.setItem('bediary_token', token)
-      localStorage.setItem('bediary_user', JSON.stringify({ userId, email, fullName, familyId, isPremium }))
+      localStorage.setItem('bediary_user', JSON.stringify({ userId, email, fullName, familyId, role }))
       navigate(familyId ? '/' : '/family-setup')
     } catch (err) {
       setError(err.response?.data?.message || 'Email hoặc mật khẩu không đúng.')

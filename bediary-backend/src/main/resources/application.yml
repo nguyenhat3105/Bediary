@@ -6,9 +6,9 @@
     name: bediary-backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/bediary_db
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:nnnnnnnnnn0}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/bediary_db}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:nnnnnnnnnn0}}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -31,7 +31,7 @@
       max-request-size: 55MB
 
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     context-path: /api/v1
 

@@ -19,15 +19,29 @@ import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.LinkedHashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -48,6 +62,9 @@ public class HealthRecordImportService {
 
     @Value("${groq.vision-model}")
     private String visionModel;
+
+    @Value("${groq.vision-fallback-models:qwen/qwen3.6-27b,meta-llama/llama-4-scout-17b-16e-instruct}")
+    private String visionFallbackModels;
 
     @Value("${groq.chat-model:${groq.vision-model}}")
     private String chatModel;
@@ -81,6 +98,11 @@ public class HealthRecordImportService {
 
     private String readableImportError(Exception e) {
         String message = e.getMessage();
+        if (e instanceof RestClientResponseException responseException) {
+            String body = responseException.getResponseBodyAsString();
+            String detail = StringUtils.hasText(body) ? " Chi tiết: " + limit(body.replaceAll("\\s+", " "), 260) : "";
+            return "AI OCR trả lỗi " + responseException.getStatusCode().value() + "." + detail;
+        }
         if (!StringUtils.hasText(message)) {
             return "Không thể đọc tài liệu sức khỏe lúc này.";
         }
@@ -113,14 +135,81 @@ public class HealthRecordImportService {
     }
 
     private String analyzeImage(MultipartFile file) throws IOException {
-        String dataUrl = "data:" + file.getContentType() + ";base64," + Base64.getEncoder().encodeToString(file.getBytes());
-        Map<String, Object> textContent = Map.of("type", "text", "text", importPrompt(null));
-        Map<String, Object> imageContent = Map.of("type", "image_url", "image_url", Map.of("url", dataUrl));
+        ImagePayload image = normalizeImage(file);
+        String dataUrl = "data:" + image.contentType() + ";base64," + Base64.getEncoder().encodeToString(image.bytes());
+
+        String ocrText = extractTextFromImage(dataUrl);
+        if (isUsefulOcrText(ocrText)) {
+            return analyzeExtractedText(ocrText);
+        }
+
+        Exception lastError = null;
+        for (String model : visionModels()) {
+            try {
+                Map<String, Object> textContent = Map.of("type", "text", "text", importPrompt(null));
+                Map<String, Object> imageContent = Map.of("type", "image_url", "image_url", Map.of("url", dataUrl));
+                Map<String, Object> requestBody = Map.of(
+                        "model", model,
+                        "messages", List.of(Map.of("role", "user", "content", List.of(textContent, imageContent))),
+                        "temperature", 0.05,
+                        "max_tokens", 2200
+                );
+                return callGroq(requestBody);
+            } catch (Exception e) {
+                lastError = e;
+                log.warn("Health import direct vision parse failed with model {}: {}", model, e.getMessage());
+            }
+        }
+        if (lastError != null) throw new IllegalStateException("Vision models failed: " + lastError.getMessage(), lastError);
+        throw new IllegalStateException("No vision model configured");
+    }
+
+    private String extractTextFromImage(String dataUrl) {
+        for (String model : visionModels()) {
+            Map<String, Object> textContent = Map.of(
+                    "type",
+                    "text",
+                    "text",
+                    """
+                    Bạn là OCR tiếng Việt cho tài liệu y tế.
+                    Hãy đọc ảnh và chép lại TOÀN BỘ chữ nhìn thấy được.
+                    Giữ nguyên tên bệnh viện, bác sĩ, ngày tháng, chẩn đoán, kết quả, thuốc và lời dặn.
+                    Nếu gặp dấu "-" mở đầu ý hoặc phân tách ý trong kết quả, hãy xuống dòng trước dấu "-" để dễ đọc.
+                    Không giải thích, không tóm tắt, không tạo JSON.
+                    Nếu ảnh không có chữ hoặc chữ quá mờ, chỉ trả: KHONG_DOC_DUOC.
+                    """
+            );
+            Map<String, Object> imageContent = Map.of("type", "image_url", "image_url", Map.of("url", dataUrl));
+            Map<String, Object> requestBody = Map.of(
+                    "model", model,
+                    "messages", List.of(Map.of("role", "user", "content", List.of(textContent, imageContent))),
+                    "temperature", 0.0,
+                    "max_tokens", 1800
+            );
+            try {
+                String text = extractAssistantText(callGroq(requestBody));
+                if (isUsefulOcrText(text)) return text;
+                log.warn("Image OCR pre-pass returned no useful text with model {}", model);
+            } catch (Exception e) {
+                log.warn("Image OCR pre-pass failed with model {}: {}", model, e.getMessage());
+            }
+        }
+        return "";
+    }
+
+    private boolean isUsefulOcrText(String text) {
+        if (!StringUtils.hasText(text)) return false;
+        String normalized = text.trim().toLowerCase();
+        if (normalized.contains("khong_doc_duoc") || normalized.contains("không đọc được")) return false;
+        return normalized.length() >= 20;
+    }
+
+    private String analyzeExtractedText(String text) {
         Map<String, Object> requestBody = Map.of(
-                "model", visionModel,
-                "messages", List.of(Map.of("role", "user", "content", List.of(textContent, imageContent))),
-                "temperature", 0.1,
-                "max_tokens", 1800
+                "model", chatModel,
+                "messages", List.of(Map.of("role", "user", "content", importPrompt(text))),
+                "temperature", 0.05,
+                "max_tokens", 2200
         );
         return callGroq(requestBody);
     }
@@ -133,13 +222,7 @@ public class HealthRecordImportService {
         if (!StringUtils.hasText(text)) {
             throw new IllegalArgumentException("PDF scan không có text. Vui lòng chụp/trích xuất từng trang thành ảnh để import.");
         }
-        Map<String, Object> requestBody = Map.of(
-                "model", chatModel,
-                "messages", List.of(Map.of("role", "user", "content", importPrompt(text))),
-                "temperature", 0.1,
-                "max_tokens", 1800
-        );
-        return callGroq(requestBody);
+        return analyzeExtractedText(text);
     }
 
     private String importPrompt(String extractedPdfText) {
@@ -148,13 +231,12 @@ public class HealthRecordImportService {
                 : "";
         return """
                 Bạn là trợ lý nhập liệu cho sổ sức khỏe trẻ em.
-                Hãy OCR/đọc giấy khám, kết quả khám hoặc đơn thuốc, rồi bóc tách thành dữ liệu có cấu trúc.
+                Nhiệm vụ: OCR/đọc giấy khám, phiếu xét nghiệm, kết quả siêu âm hoặc đơn thuốc rồi bóc tách thành dữ liệu có cấu trúc.
                 Không chẩn đoán, không tự thêm thuốc/liều nếu tài liệu không ghi rõ.
-                Nếu không chắc, để trống trường đó và thêm cảnh báo.
 
                 Chỉ trả về JSON hợp lệ, không markdown, theo schema:
                 {
-                  "extractedText": "văn bản đọc được ngắn gọn",
+                  "extractedText": "văn bản đọc được, giữ thông tin y tế quan trọng; nếu gặp dấu '-' thì xuống dòng trước dấu '-'",
                   "warnings": ["điểm cần phụ huynh kiểm tra lại"],
                   "records": [
                     {
@@ -175,12 +257,17 @@ public class HealthRecordImportService {
                   ]
                 }
 
-                Quy tắc:
-                - Một lần khám nên tạo 1 record CHECKUP.
+                Quy tắc bóc tách:
+                - Một lần khám/kết quả khám nên tạo 1 record CHECKUP.
                 - Mỗi thuốc trong đơn nên tạo 1 record MEDICATION riêng nếu đọc được tên thuốc.
                 - Dị ứng thuốc/thức ăn tạo ALLERGY.
+                - Bệnh lý/tình trạng theo dõi tạo CONDITION.
                 - Ngày không chắc thì null.
                 - Luôn thêm cảnh báo kiểm tra lại tên thuốc và liều dùng nếu có thuốc.
+                - Trong extractedText, nếu gặp dấu "-" dùng để liệt kê hoặc phân tách ý, phải xuống dòng trước dấu "-".
+                - Nếu đọc được bất kỳ chữ/nội dung y tế nào nhưng không chắc schema, vẫn tạo 1 record NOTE với title ngắn và notes chứa nội dung đọc được để phụ huynh kiểm tra.
+                - Không trả records rỗng nếu extractedText có nội dung đọc được.
+                - Nếu ảnh không phải tài liệu y tế hoặc không đọc được chữ, trả extractedText rỗng và records rỗng.
                 """ + source;
     }
 
@@ -196,13 +283,32 @@ public class HealthRecordImportService {
             if (request != null) records.add(request);
         });
 
-        if (records.isEmpty()) {
+        String extractedText = root.path("extractedText").asText("");
+        if (records.isEmpty() && StringUtils.hasText(extractedText)) {
+            records.add(new HealthRecordRequest(
+                    HealthRecord.Type.NOTE,
+                    "Nội dung sức khỏe cần kiểm tra",
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    HealthRecord.HereditarySide.UNKNOWN,
+                    HealthRecord.Severity.LOW,
+                    clean(extractedText),
+                    null  // subjectId: null = hồ sơ của Bé
+            ));
+            warnings.add("AI đọc được một phần nội dung nhưng chưa bóc tách chắc chắn. Mình đã tạo bản nháp ghi chú để ba mẹ kiểm tra và chỉnh lại trước khi lưu.");
+        } else if (records.isEmpty()) {
             warnings.add("AI chưa bóc tách được hồ sơ nào. Phụ huynh nên nhập tay hoặc thử ảnh rõ hơn.");
         }
         if (warnings.isEmpty()) {
             warnings.add("Vui lòng kiểm tra lại toàn bộ thông tin trước khi lưu, đặc biệt tên thuốc và liều dùng.");
         }
-        return new HealthRecordImportResponse(records, root.path("extractedText").asText(""), warnings);
+        return new HealthRecordImportResponse(records, extractedText, warnings);
     }
 
     private HealthRecordRequest toRequest(JsonNode node) {
@@ -231,7 +337,8 @@ public class HealthRecordImportService {
                 enumValue(HealthRecord.MedicationStatus.class, node.path("medicationStatus").asText(), null),
                 enumValue(HealthRecord.HereditarySide.class, node.path("hereditarySide").asText(), HealthRecord.HereditarySide.UNKNOWN),
                 enumValue(HealthRecord.Severity.class, node.path("severity").asText(), HealthRecord.Severity.LOW),
-                clean(node.path("notes").asText(null))
+                clean(node.path("notes").asText(null)),
+                null  // subjectId: null = hồ sơ của Bé
         );
     }
 
@@ -246,6 +353,18 @@ public class HealthRecordImportService {
                 .body(requestBody)
                 .retrieve()
                 .body(String.class);
+    }
+
+    private List<String> visionModels() {
+        Set<String> models = new LinkedHashSet<>();
+        if (StringUtils.hasText(visionModel)) models.add(visionModel.trim());
+        if (StringUtils.hasText(visionFallbackModels)) {
+            Arrays.stream(visionFallbackModels.split(","))
+                    .map(String::trim)
+                    .filter(StringUtils::hasText)
+                    .forEach(models::add);
+        }
+        return List.copyOf(models);
     }
 
     private String extractAssistantText(String rawResponse) throws Exception {
@@ -285,6 +404,56 @@ public class HealthRecordImportService {
         return text.length() <= maxChars ? text : text.substring(0, maxChars);
     }
 
+    private ImagePayload normalizeImage(MultipartFile file) throws IOException {
+        byte[] original = file.getBytes();
+        BufferedImage source = ImageIO.read(file.getInputStream());
+        if (source == null) {
+            String contentType = file.getContentType() == null ? MediaType.IMAGE_JPEG_VALUE : file.getContentType();
+            return new ImagePayload(contentType, original);
+        }
+
+        int maxSide = 1800;
+        double scale = Math.min(1.0, (double) maxSide / Math.max(source.getWidth(), source.getHeight()));
+        int width = Math.max(1, (int) Math.round(source.getWidth() * scale));
+        int height = Math.max(1, (int) Math.round(source.getHeight() * scale));
+
+        BufferedImage normalized = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = normalized.createGraphics();
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        graphics.setColor(java.awt.Color.WHITE);
+        graphics.fillRect(0, 0, width, height);
+        graphics.drawImage(source, 0, 0, width, height, null);
+        graphics.dispose();
+
+        return new ImagePayload(MediaType.IMAGE_JPEG_VALUE, writeJpeg(normalized, 0.9f));
+    }
+
+    private byte[] writeJpeg(BufferedImage image, float quality) throws IOException {
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
+        if (!writers.hasNext()) {
+            ByteArrayOutputStream fallback = new ByteArrayOutputStream();
+            ImageIO.write(image, "jpg", fallback);
+            return fallback.toByteArray();
+        }
+
+        ImageWriter writer = writers.next();
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+             ImageOutputStream imageOutput = ImageIO.createImageOutputStream(output)) {
+            writer.setOutput(imageOutput);
+            ImageWriteParam params = writer.getDefaultWriteParam();
+            if (params.canWriteCompressed()) {
+                params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                params.setCompressionQuality(quality);
+            }
+            writer.write(null, new IIOImage(image, null, null), params);
+            return output.toByteArray();
+        } finally {
+            writer.dispose();
+        }
+    }
+
     private void requireWriter(UUID userId, UUID familyId) {
         FamilyMember member = familyMemberRepository.findByFamilyIdAndUserId(familyId, userId)
                 .orElseThrow(() -> new AccessDeniedException("Not a family member"));
@@ -292,4 +461,6 @@ public class HealthRecordImportService {
             throw new AccessDeniedException("Tài khoản này chỉ có quyền xem sổ sức khỏe");
         }
     }
+
+    private record ImagePayload(String contentType, byte[] bytes) {}
 }

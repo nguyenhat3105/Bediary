@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 public record HealthRecordRequest(
         @NotNull HealthRecord.Type recordType,
@@ -19,5 +20,7 @@ public record HealthRecordRequest(
         HealthRecord.MedicationStatus medicationStatus,
         HealthRecord.HereditarySide hereditarySide,
         HealthRecord.Severity severity,
-        String notes
+        String notes,
+        /** null = hồ sơ của Bé; UUID = hồ sơ của người thân (Ba/Mẹ...) */
+        UUID subjectId
 ) {}

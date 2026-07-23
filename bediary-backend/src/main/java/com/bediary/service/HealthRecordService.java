@@ -5,16 +5,20 @@ import com.bediary.dto.HealthRecordResponse;
 import com.bediary.entity.Family;
 import com.bediary.entity.FamilyMember;
 import com.bediary.entity.HealthRecord;
+import com.bediary.entity.HealthSubject;
 import com.bediary.entity.User;
 import com.bediary.repository.FamilyMemberRepository;
 import com.bediary.repository.FamilyRepository;
 import com.bediary.repository.HealthRecordRepository;
+import com.bediary.repository.HealthSubjectRepository;
 import com.bediary.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,15 +29,34 @@ import java.util.UUID;
 public class HealthRecordService {
 
     private final HealthRecordRepository healthRecordRepository;
+    private final HealthSubjectRepository healthSubjectRepository;
     private final FamilyRepository familyRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final UserRepository userRepository;
 
+    /**
+     * List records filtered by subject.
+     * subjectId == null  → Baby records (subject IS NULL)
+     * subjectId != null  → records for that family member
+     */
     @Transactional(readOnly = true)
-    public List<HealthRecordResponse> list(UUID familyId, HealthRecord.Type type) {
-        List<HealthRecord> records = type == null
-                ? healthRecordRepository.findByFamilyIdOrderByEventDateDescCreatedAtDesc(familyId)
-                : healthRecordRepository.findByFamilyIdAndRecordTypeOrderByEventDateDescCreatedAtDesc(familyId, type);
+    public List<HealthRecordResponse> list(UUID familyId, HealthRecord.Type type, UUID subjectId) {
+        List<HealthRecord> records;
+
+        if (subjectId == null) {
+            // Baby tab
+            records = type == null
+                    ? healthRecordRepository.findByFamilyIdAndSubjectIsNullOrderByEventDateDescCreatedAtDesc(familyId)
+                    : healthRecordRepository.findByFamilyIdAndSubjectIsNullAndRecordTypeOrderByEventDateDescCreatedAtDesc(familyId, type);
+        } else {
+            // Family member tab
+            HealthSubject subject = healthSubjectRepository.findByIdAndFamilyId(subjectId, familyId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Health subject not found"));
+            records = type == null
+                    ? healthRecordRepository.findByFamilyIdAndSubjectOrderByEventDateDescCreatedAtDesc(familyId, subject)
+                    : healthRecordRepository.findByFamilyIdAndSubjectAndRecordTypeOrderByEventDateDescCreatedAtDesc(familyId, subject, type);
+        }
+
         return records.stream().map(this::toResponse).toList();
     }
 
@@ -58,6 +81,7 @@ public class HealthRecordService {
         HealthRecord record = new HealthRecord();
         record.setFamily(family);
         record.setCreatedBy(user);
+        applySubject(record, request, familyId);
         apply(record, request);
         return toResponse(healthRecordRepository.save(record));
     }
@@ -66,6 +90,7 @@ public class HealthRecordService {
     public HealthRecordResponse update(UUID id, HealthRecordRequest request, UUID userId, UUID familyId) {
         requireWriter(userId, familyId);
         HealthRecord record = getForFamily(id, familyId);
+        applySubject(record, request, familyId);
         apply(record, request);
         return toResponse(healthRecordRepository.save(record));
     }
@@ -74,6 +99,18 @@ public class HealthRecordService {
     public void delete(UUID id, UUID userId, UUID familyId) {
         requireWriter(userId, familyId);
         healthRecordRepository.delete(getForFamily(id, familyId));
+    }
+
+    // ── Private helpers ──────────────────────────────────────────────────────
+
+    private void applySubject(HealthRecord record, HealthRecordRequest request, UUID familyId) {
+        if (request.subjectId() == null) {
+            record.setSubject(null); // Baby
+        } else {
+            HealthSubject subject = healthSubjectRepository.findByIdAndFamilyId(request.subjectId(), familyId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Health subject not found"));
+            record.setSubject(subject);
+        }
     }
 
     private void apply(HealthRecord record, HealthRecordRequest request) {
@@ -114,6 +151,7 @@ public class HealthRecordService {
     }
 
     private HealthRecordResponse toResponse(HealthRecord record) {
+        HealthSubject subject = record.getSubject();
         return new HealthRecordResponse(
                 record.getId(),
                 record.getRecordType(),
@@ -130,7 +168,10 @@ public class HealthRecordService {
                 record.getSeverity(),
                 record.getNotes(),
                 record.getCreatedBy().getFullName(),
-                record.getCreatedAt()
+                record.getCreatedAt(),
+                subject != null ? subject.getId() : null,
+                subject != null ? subject.getRelationship() : null,
+                subject != null ? subject.getDisplayName() : null
         );
     }
 }

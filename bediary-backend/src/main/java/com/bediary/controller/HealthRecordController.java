@@ -33,11 +33,12 @@ public class HealthRecordController {
     @GetMapping
     public ResponseEntity<List<HealthRecordResponse>> list(
             @RequestParam(required = false) HealthRecord.Type type,
+            @RequestParam(required = false) UUID subjectId,
             HttpServletRequest request) {
         String token = extractToken(request);
         UUID userId = jwtUtil.extractUserId(token);
         UUID familyId = resolveFamilyId(token, userId);
-        return ResponseEntity.ok(healthRecordService.list(familyId, type));
+        return ResponseEntity.ok(healthRecordService.list(familyId, type, subjectId));
     }
 
     @GetMapping("/upcoming")

@@ -22,5 +22,9 @@ public record HealthRecordResponse(
         HealthRecord.Severity severity,
         String notes,
         String createdByName,
-        Instant createdAt
+        Instant createdAt,
+        /** null = hồ sơ của Bé */
+        UUID subjectId,
+        String subjectRelationship,
+        String subjectDisplayName
 ) {}

@@ -24,7 +24,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
-import { healthApi } from '../api/api'
+import { healthApi, healthSubjectApi } from '../api/api'
 
 const TYPES = [
   { value: '', label: 'Tất cả', Icon: HeartPulse, color: '#FF5C8A', bg: '#FFF0F5', gradient: 'linear-gradient(135deg,#FF5C8A,#FF8FAB)' },
@@ -50,12 +50,21 @@ const EMPTY_FORM = {
   hereditarySide: 'UNKNOWN',
   severity: 'LOW',
   notes: '',
+  subjectId: null,
 }
 
 function unwrap(response) { return response?.data ?? response }
 function listFromResponse(response) {
   const data = unwrap(response)
   return Array.isArray(data) ? data : data?.content ?? []
+}
+function formatOcrText(text = '') {
+  return String(text)
+    .replace(/\s*([:;])\s*[-–—]\s+/g, '$1\n- ')
+    .replace(/\s+[-–—]\s+/g, '\n- ')
+    .replace(/([^\n])[-–—]\s+(?=[A-ZÀ-Ỵa-zà-ỵ0-9])/g, '$1\n- ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 }
 function typeMeta(type) { return TYPES.find((t) => t.value === type) || TYPES[0] }
 function formatDate(value) {
@@ -101,13 +110,26 @@ export default function HealthRecordPage() {
   const [selectedDrafts, setSelectedDrafts] = useState({})
   const fileRef = useRef(null)
 
-  useEffect(() => { loadRecords() }, [filter])
+  // Subject (Ba/Mẹ tabs)
+  const [subjects, setSubjects] = useState([])          // danh sách sổ người thân
+  const [activeSubjectId, setActiveSubjectId] = useState(null) // null = Bé
+  const [addSubjectOpen, setAddSubjectOpen] = useState(false)
+
+  useEffect(() => { loadSubjects() }, [])
+  useEffect(() => { loadRecords() }, [filter, activeSubjectId])
+
+  async function loadSubjects() {
+    try {
+      const res = await healthSubjectApi.list()
+      setSubjects(listFromResponse(res))
+    } catch { /* silent — subjects are non-critical */ }
+  }
 
   async function loadRecords() {
     setLoading(true); setError('')
     try {
       const [recordsRes, upcomingRes] = await Promise.allSettled([
-        healthApi.list(filter || undefined),
+        healthApi.list(filter || undefined, activeSubjectId),
         healthApi.upcoming(90),
       ])
       if (recordsRes.status === 'fulfilled') setRecords(listFromResponse(recordsRes.value))
@@ -117,7 +139,9 @@ export default function HealthRecordPage() {
   }
 
   function openCreate(type = 'CHECKUP') {
-    setEditingId(null); setForm({ ...EMPTY_FORM, recordType: type || 'CHECKUP' }); setModalOpen(true)
+    setEditingId(null)
+    setForm({ ...EMPTY_FORM, recordType: type || 'CHECKUP', subjectId: activeSubjectId })
+    setModalOpen(true)
   }
   function openEdit(record) {
     setEditingId(record.id); setForm(normalizeDraft(record)); setModalOpen(true)
@@ -154,7 +178,7 @@ export default function HealthRecordPage() {
       const nextDrafts = (data.records || []).map(normalizeDraft)
       setDrafts(nextDrafts)
       setSelectedDrafts(Object.fromEntries(nextDrafts.map((_, i) => [i, true])))
-      setImportText(data.extractedText || ''); setImportWarnings(data.warnings || [])
+      setImportText(formatOcrText(data.extractedText || '')); setImportWarnings(data.warnings || [])
     } catch (err) {
       setImportWarnings([err.response?.data?.message || 'Không thể đọc tài liệu. Hãy thử ảnh rõ hơn hoặc nhập tay.'])
     } finally { setImporting(false) }
@@ -169,11 +193,20 @@ export default function HealthRecordPage() {
     try {
       for (const draft of selected) {
         if (!draft.title?.trim()) throw new Error('Một hồ sơ đang thiếu tiêu đề.')
-        await healthApi.create(compactPayload({ ...draft, title: draft.title.trim() }))
+        await healthApi.create(compactPayload({ ...draft, title: draft.title.trim(), subjectId: activeSubjectId }))
       }
       setImportOpen(false); await loadRecords()
     } catch (err) { setImportWarnings([err.response?.data?.message || err.message || 'Không thể lưu bản nháp đã chọn.']) }
     finally { setSaving(false) }
+  }
+
+  async function deleteSubject(subjectId) {
+    if (!window.confirm('Xóa sổ này? Tất cả hồ sơ trong sổ sẽ bị gữ lại nhưng không thuộc về ai.')) return
+    try {
+      await healthSubjectApi.delete(subjectId)
+      setSubjects(prev => prev.filter(s => s.id !== subjectId))
+      if (activeSubjectId === subjectId) setActiveSubjectId(null)
+    } catch (err) { setError(err.response?.data?.message || 'Không thể xóa sổ.') }
   }
 
   const stats = useMemo(() => ({
@@ -200,6 +233,8 @@ export default function HealthRecordPage() {
         .action-btn:hover { transform: translateY(-2px); }
         .icon-btn { transition: all 0.15s; }
         .icon-btn:hover { background: #F5E8EE !important; }
+        .subject-tab .del-btn { opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+        .subject-tab:hover .del-btn { opacity: 1; pointer-events: auto; }
       `}</style>
 
       <main style={{ padding: '88px 16px 120px', maxWidth: 520, margin: '0 auto' }}>
@@ -224,7 +259,9 @@ export default function HealthRecordPage() {
                 <span style={{ fontSize:12, fontWeight:800, opacity:.9, letterSpacing:.5 }}>SỔ SỨC KHỎE GIA ĐÌNH</span>
               </div>
               <h1 style={{ margin:'0 0 8px', fontSize:27, fontWeight:900, lineHeight:1.1, letterSpacing:-.3 }}>
-                Sức khỏe của bé
+                {activeSubjectId
+                  ? `Sức khỏe của ${subjects.find(s => s.id === activeSubjectId)?.displayName || subjects.find(s => s.id === activeSubjectId)?.relationship || 'Người thân'}`
+                  : 'Sức khỏe của Bé'}
               </h1>
               <p style={{ margin:0, fontSize:13, lineHeight:1.55, opacity:.88, maxWidth:240 }}>
                 Lưu lịch khám, đơn thuốc, dị ứng và lời dặn của bác sĩ. AI hỗ trợ điền từ giấy khám.
@@ -249,6 +286,15 @@ export default function HealthRecordPage() {
           </div>
         </section>
 
+        {/* ── Subject Tabs ── */}
+        <SubjectTabBar
+          subjects={subjects}
+          activeSubjectId={activeSubjectId}
+          onSelect={setActiveSubjectId}
+          onAdd={() => setAddSubjectOpen(true)}
+          onDelete={deleteSubject}
+        />
+
         {/* ── Quick Actions ── */}
         <section style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
           <button type="button" className="action-btn" onClick={openImport} style={{
@@ -262,8 +308,8 @@ export default function HealthRecordPage() {
               <ScanSearch size={20} color="#fff" />
             </div>
             <span style={{ lineHeight:1.35 }}>
-              <strong style={{ display:'block', fontSize:13, fontWeight:900, color:'#28232A' }}>Import giấy khám</strong>
-              <small style={{ fontSize:11, color:'#8D848E', fontWeight:600 }}>AI bóc tách nhanh</small>
+            <strong style={{ display:'block', fontSize:13, fontWeight:900, color:'#28232A' }}>Nhập từ ảnh / PDF</strong>
+              <small style={{ fontSize:11, color:'#8D848E', fontWeight:600 }}>AI bóc tách tự động</small>
             </span>
           </button>
 
@@ -388,7 +434,7 @@ export default function HealthRecordPage() {
                 fontSize:13, fontWeight:800, fontFamily:'inherit',
                 boxShadow:'0 8px 20px rgba(255,92,138,.3)', cursor:'pointer',
               }}>
-                <Sparkles size={15} /> Import tài liệu
+                <Sparkles size={15} /> Nhập từ ảnh giấy khám
               </button>
             </div>
           ) : records.map((record) => (
@@ -413,8 +459,200 @@ export default function HealthRecordPage() {
           onClose={() => setImportOpen(false)}
         />
       )}
+      {addSubjectOpen && (
+        <AddSubjectModal
+          onClose={() => setAddSubjectOpen(false)}
+          onCreated={(newSubject) => {
+            setSubjects(prev => [...prev, newSubject])
+            setActiveSubjectId(newSubject.id)
+            setAddSubjectOpen(false)
+          }}
+        />
+      )}
 
       <Navbar />
+    </div>
+  )
+}
+
+/* ─── Subject Tab Bar ─── */
+function SubjectTabBar({ subjects, activeSubjectId, onSelect, onAdd, onDelete }) {
+  const tabs = [
+    { id: null, label: 'Bé', emoji: '👶' },
+    ...subjects.map(s => ({ id: s.id, label: s.displayName || s.relationship, emoji: s.relationship === 'Ba' ? '👨' : s.relationship === 'Mẹ' ? '👩' : s.relationship === 'Ông' ? '👴' : s.relationship === 'Bà' ? '👵' : '👤' })),
+  ]
+  return (
+    <div style={{ marginTop: 5, marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto',paddingTop:4, paddingBottom: 4, scrollbarWidth: 'none' }}>
+        {tabs.map(tab => {
+          const active = tab.id === activeSubjectId
+          return (
+            <button
+              key={tab.id ?? 'baby'}
+              type="button"
+              className="subject-tab"
+              onClick={() => onSelect(tab.id)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                padding: '10px 14px', borderRadius: 18, flexShrink: 0,
+                border: active ? '2px solid #FF5C8A' : '1.5px solid #F1E3E9',
+                background: active ? 'linear-gradient(135deg,#FFF0F5,#FFE4EE)' : '#FFFFFF',
+                boxShadow: active ? '0 6px 20px rgba(255,92,138,.18)' : '0 2px 8px rgba(0,0,0,.04)',
+                cursor: 'pointer', transition: 'all 0.18s', position: 'relative',
+              }}
+            >
+              <span style={{ fontSize: 22 }}>{tab.emoji}</span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: active ? '#E91E8C' : '#6B5E6E', whiteSpace: 'nowrap' }}>
+                {tab.label}
+              </span>
+              {/* Nút xóa — chỉ hiện khi hover (class del-btn) */}
+              {tab.id && (
+                <button
+                  type="button"
+                  className="del-btn"
+                  onClick={e => { e.stopPropagation(); onDelete(tab.id) }}
+                  style={{
+                    position: 'absolute', top: -6, right: -6, width: 18, height: 18,
+                    borderRadius: '50%', background: '#FF5C8A', border: '2px solid #fff',
+                    display: 'grid', placeItems: 'center', cursor: 'pointer',
+                  }}
+                >
+                  <X size={9} color="#fff" strokeWidth={3} />
+                </button>
+              )}
+            </button>
+          )
+        })}
+        {/* Nút thêm sổ mới */}
+        <button
+          type="button"
+          onClick={onAdd}
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            padding: '10px 14px', borderRadius: 18, flexShrink: 0,
+            border: '1.5px dashed #FFCADA', background: '#FFFAFC',
+            cursor: 'pointer', transition: 'all 0.18s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#FFF0F5'}
+          onMouseLeave={e => e.currentTarget.style.background = '#FFFAFC'}
+        >
+          <span style={{ fontSize: 22 }}>➕</span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: '#FF8FAB', whiteSpace: 'nowrap' }}>Thêm sổ</span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Add Subject Modal ─── */
+const RELATIONSHIPS = ['Ba', 'Mẹ', 'Ông', 'Bà', 'Khác']
+function AddSubjectModal({ onClose, onCreated }) {
+  const [relationship, setRelationship] = useState('Ba')
+  const [displayName, setDisplayName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleCreate(e) {
+    e.preventDefault()
+    setSaving(true); setError('')
+    try {
+      const res = await healthSubjectApi.create({
+        relationship,
+        displayName: displayName.trim() || null,
+      })
+      const data = res?.data ?? res
+      onCreated(data)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể tạo sổ sức khỏe.')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div
+      onClick={e => e.target === e.currentTarget && onClose()}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: 'rgba(15,10,30,.55)', backdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      }}
+    >
+      <div style={{
+        background: '#fff', borderRadius: 28, width: '100%', maxWidth: 380,
+        padding: '28px 22px 24px', boxShadow: '0 32px 80px rgba(0,0,0,.28)',
+        animation: 'slideUp 0.25s cubic-bezier(.22,1,.36,1)',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#1A1A2E' }}>Thêm sổ sức khỏe</h3>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#AAA' }}>Tạo sổ riêng cho người thân</p>
+          </div>
+          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: '50%', background: '#F5F5F5', border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+            <X size={16} color="#888" />
+          </button>
+        </div>
+
+        <form onSubmit={handleCreate}>
+          {/* Relationship chips */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#6B5E6E', marginBottom: 10, letterSpacing: .3 }}>
+              QUAN HỆ VỚI BÉ
+            </label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {RELATIONSHIPS.map(r => (
+                <button
+                  key={r} type="button"
+                  onClick={() => setRelationship(r)}
+                  style={{
+                    padding: '8px 16px', borderRadius: 999, border: 'none',
+                    background: relationship === r ? 'linear-gradient(135deg,#FF5C8A,#E91E8C)' : '#F5F0F5',
+                    color: relationship === r ? '#fff' : '#6B5E6E',
+                    fontSize: 13, fontWeight: 800, cursor: 'pointer', transition: 'all .15s',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {r === 'Ba' ? '👨 Ba' : r === 'Mẹ' ? '👩 Mẹ' : r === 'Ông' ? '👴 Ông' : r === 'Bà' ? '👵 Bà' : '👤 Khác'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Display name */}
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#6B5E6E', marginBottom: 8, letterSpacing: .3 }}>
+              TÊN HIỂN THỊ <span style={{ fontWeight: 400, opacity: .7 }}>(tùy chọn)</span>
+            </label>
+            <input
+              value={displayName}
+              onChange={e => setDisplayName(e.target.value)}
+              placeholder={`Ví dụ: ${relationship} Minh`}
+              maxLength={80}
+              style={{
+                width: '100%', padding: '12px 14px', borderRadius: 14,
+                border: '1.5px solid #F1E3E9', background: '#FFFAFC',
+                fontSize: 14, fontWeight: 600, color: '#28232A',
+                fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {error && <p style={{ color: '#DC2626', fontSize: 13, marginBottom: 12, fontWeight: 600 }}>{error}</p>}
+
+          <button
+            type="submit"
+            disabled={saving}
+            style={{
+              width: '100%', padding: '14px', borderRadius: 16,
+              background: 'linear-gradient(135deg,#FF5C8A,#E91E8C)',
+              color: '#fff', border: 'none', fontSize: 15, fontWeight: 900,
+              cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+              boxShadow: '0 8px 24px rgba(255,92,138,.35)', opacity: saving ? .7 : 1,
+            }}
+          >
+            {saving ? 'Đang tạo...' : `Tạo sổ sức khỏe của ${displayName || relationship}`}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
@@ -477,8 +715,8 @@ function RecordCardPro({ record, onEdit, onDelete }) {
 
       {hasMainBody && (
         <div style={{ marginTop:14, padding:'13px 14px', borderRadius:18, background:'#FFF9FB', border:'1px solid #F3E0E8', color:'#312A33', fontSize:13, lineHeight:1.6 }}>
-          {record.diagnosis && <p style={{ margin:'0 0 9px' }}><strong style={{ color:'#211D23' }}>Chẩn đoán:</strong> {record.diagnosis}</p>}
-          {record.notes && <p style={{ margin:0, whiteSpace:'pre-wrap' }}>{record.notes}</p>}
+          {record.diagnosis && <p style={{ margin:'0 0 9px', whiteSpace:'pre-wrap' }}><strong style={{ color:'#211D23' }}>Chẩn đoán:</strong> {formatOcrText(record.diagnosis)}</p>}
+          {record.notes && <p style={{ margin:0, whiteSpace:'pre-wrap' }}>{formatOcrText(record.notes)}</p>}
         </div>
       )}
 
@@ -735,7 +973,7 @@ function RecordCard({ record, onEdit, onDelete }) {
               labelColor="#4A6CF7" labelBg="#EEF3FF" borderColor="#D0DBFD"
               isDiagnosis
             >
-              {record.diagnosis}
+              {formatOcrText(record.diagnosis)}
             </RecordDetail>
           )}
           {record.medicationName && (
@@ -752,7 +990,7 @@ function RecordCard({ record, onEdit, onDelete }) {
               icon="📝" label="Lời dặn & ghi chú"
               labelColor="#64748B" labelBg="#F3F6F8" borderColor="#CBD5E1"
             >
-              {record.notes}
+              {formatOcrText(record.notes)}
             </RecordDetail>
           )}
         </div>
@@ -785,8 +1023,8 @@ function ImportModal(props) {
       <div style={sheetS} onClick={(e) => e.stopPropagation()}>
         <div style={sheetHeaderS}>
           <div>
-            <h2 style={{ margin:0, fontSize:20, fontWeight:900, color:'#1E1523' }}>Import sổ sức khỏe</h2>
-            <p style={{ margin:'4px 0 0', color:'#9C8EA0', fontSize:12, fontWeight:600 }}>AI điền nháp — Ba mẹ kiểm tra trước khi lưu</p>
+            <h2 style={{ margin:0, fontSize:20, fontWeight:900, color:'#1E1523' }}>Nhập hồ sơ từ ảnh / PDF</h2>
+            <p style={{ margin:'4px 0 0', color:'#9C8EA0', fontSize:12, fontWeight:600 }}>AI đọc và điền nháp — kiểm tra kỹ trước khi lưu</p>
           </div>
           <button type="button" onClick={onClose} style={iconBtnS} aria-label="Đóng"><X size={18} /></button>
         </div>
@@ -804,10 +1042,10 @@ function ImportModal(props) {
             : <UploadCloud size={30} color="#FF8FAB" />
           }
           <strong style={{ fontSize:14, fontWeight:800, color:'#28232A' }}>
-            {importing ? 'Đang đọc tài liệu...' : 'Chọn ảnh / PDF giấy khám hoặc đơn thuốc'}
+            {importing ? 'Đang đọc tài liệu...' : 'Chọn ảnh hoặc PDF giấy khám / đơn thuốc'}
           </strong>
           <span style={{ fontSize:12, color:'#9C8EA0', fontWeight:600 }}>
-            {importFileName || 'Hỗ trợ ảnh chụp rõ nét, PDF dạng text. Tối đa 10MB.'}
+            {importFileName || 'Hỗ trợ ảnh chụp rõ nét, tệp PDF. Tối đa 10MB.'}
           </span>
         </button>
 
@@ -819,7 +1057,7 @@ function ImportModal(props) {
 
         {importText && (
           <details style={{ background:'#F8FAFC', border:'1px solid #E2E8F0', borderRadius:16, padding:'12px 14px' }}>
-            <summary style={{ cursor:'pointer', fontWeight:800, color:'#475569', fontSize:13 }}>📄 Văn bản AI đọc được</summary>
+            <summary style={{ cursor:'pointer', fontWeight:800, color:'#475569', fontSize:13 }}>📄 Nội dung AI nhận dạng được</summary>
             <p style={{ whiteSpace:'pre-wrap', margin:'10px 0 0', color:'#64748B', fontSize:12, lineHeight:1.6 }}>{importText}</p>
           </details>
         )}
@@ -899,8 +1137,8 @@ function DraftCardV2({ draft, selected, onToggle, onChange }) {
 
       {hasClinicalText && (
         <div style={{ marginTop:13, border:'1px solid #F3E0E8', background:'#FFF9FB', borderRadius:18, padding:'12px 13px', color:'#312A33', fontSize:13, lineHeight:1.55 }}>
-          {draft.diagnosis && <p style={{ margin:'0 0 9px' }}><strong style={{ color:'#211D23' }}>Chẩn đoán:</strong> {draft.diagnosis}</p>}
-          {draft.notes && <p style={{ margin:0, whiteSpace:'pre-wrap' }}>{draft.notes}</p>}
+          {draft.diagnosis && <p style={{ margin:'0 0 9px', whiteSpace:'pre-wrap' }}><strong style={{ color:'#211D23' }}>Chẩn đoán:</strong> {formatOcrText(draft.diagnosis)}</p>}
+          {draft.notes && <p style={{ margin:0, whiteSpace:'pre-wrap' }}>{formatOcrText(draft.notes)}</p>}
         </div>
       )}
 
@@ -931,14 +1169,14 @@ function DraftCardV2({ draft, selected, onToggle, onChange }) {
             <input type="date" value={draft.eventDate || ''} onChange={(e) => onChange({ eventDate: e.target.value })} style={inputS} />
             <input type="date" value={draft.nextFollowUpDate || ''} onChange={(e) => onChange({ nextFollowUpDate: e.target.value })} style={inputS} />
           </div>
-          <input value={draft.facility || ''} onChange={(e) => onChange({ facility: e.target.value })} placeholder="Cơ sở y tế" style={inputS} />
-          <input value={draft.doctorName || ''} onChange={(e) => onChange({ doctorName: e.target.value })} placeholder="Bác sĩ" style={inputS} />
+          <input value={draft.facility || ''} onChange={(e) => onChange({ facility: e.target.value })} placeholder="Tên bệnh viện / phòng khám" style={inputS} />
+          <input value={draft.doctorName || ''} onChange={(e) => onChange({ doctorName: e.target.value })} placeholder="Tên bác sĩ" style={inputS} />
           <textarea value={draft.diagnosis || ''} onChange={(e) => onChange({ diagnosis: e.target.value })} placeholder="Chẩn đoán / tình trạng" rows={3} style={inputS} />
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
             <input value={draft.medicationName || ''} onChange={(e) => onChange({ medicationName: e.target.value })} placeholder="Tên thuốc" style={inputS} />
             <input value={draft.medicationDosage || ''} onChange={(e) => onChange({ medicationDosage: e.target.value })} placeholder="Liều dùng" style={inputS} />
           </div>
-          <textarea value={draft.notes || ''} onChange={(e) => onChange({ notes: e.target.value })} placeholder="Ghi chú / lời dặn" rows={3} style={inputS} />
+          <textarea value={draft.notes || ''} onChange={(e) => onChange({ notes: e.target.value })} placeholder="Ghi chú / lời dặn bác sĩ" rows={3} style={inputS} />
         </div>
       </details>
     </article>

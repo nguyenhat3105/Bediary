@@ -71,6 +71,11 @@ public class HealthRecord {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /** null = record thuộc về Bé; non-null = record thuộc về người thân (Ba/Mẹ...) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_id")
+    private HealthSubject subject;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -96,6 +101,7 @@ public class HealthRecord {
     public HereditarySide getHereditarySide() { return hereditarySide; }
     public Severity getSeverity() { return severity; }
     public String getNotes() { return notes; }
+    public HealthSubject getSubject() { return subject; }
     public Instant getCreatedAt() { return createdAt; }
 
     public void setFamily(Family family) { this.family = family; }
@@ -113,4 +119,5 @@ public class HealthRecord {
     public void setHereditarySide(HereditarySide hereditarySide) { this.hereditarySide = hereditarySide; }
     public void setSeverity(Severity severity) { this.severity = severity; }
     public void setNotes(String notes) { this.notes = notes; }
+    public void setSubject(HealthSubject subject) { this.subject = subject; }
 }

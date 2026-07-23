@@ -44,7 +44,10 @@ export const trackingApi = {
 }
 
 export const healthApi = {
-  list: (type) => axiosClient.get(`/health-records${type ? `?type=${type}` : ''}`),
+  list: (type, subjectId) =>
+    axiosClient.get('/health-records', {
+      params: { type: type || undefined, subjectId: subjectId || undefined },
+    }),
   upcoming: (days = 60) => axiosClient.get(`/health-records/upcoming?days=${days}`),
   analyzeImport: (file) => {
     const fd = new FormData()
@@ -54,6 +57,12 @@ export const healthApi = {
   create: (data) => axiosClient.post('/health-records', data),
   update: (id, data) => axiosClient.put(`/health-records/${id}`, data),
   delete: (id) => axiosClient.delete(`/health-records/${id}`),
+}
+
+export const healthSubjectApi = {
+  list: () => axiosClient.get('/health-subjects'),
+  create: (data) => axiosClient.post('/health-subjects', data),
+  delete: (id) => axiosClient.delete(`/health-subjects/${id}`),
 }
 
 export const mediaApi = {

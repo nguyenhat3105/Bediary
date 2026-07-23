@@ -152,7 +152,7 @@ export const notificationApi = {
   list: (page = 0) => axiosClient.get(`/notifications?page=${page}&size=20`),
   markRead: (id) => axiosClient.patch(`/notifications/${id}/read`),
   markAllRead: () => axiosClient.patch('/notifications/read-all'),
-  unreadCount: () => axiosClient.get('/notifications/unread-count'),
+  unreadCount: () => axiosClient.get('/notifications/unread-count', { skipAuthRedirect: true }),
 }
 
 

@@ -75,6 +75,7 @@ function clearAuthSession(message) {
 }
 
 const baseURL = resolveApiBaseUrl()
+const BACKGROUND_AUTH_URLS = ['/notifications/unread-count']
 
 const refreshClient = axios.create({
   baseURL,
@@ -122,6 +123,24 @@ function shouldAttemptRefresh(error) {
     && !url.includes('/auth/logout')
 }
 
+function isBackgroundAuthRequest(config = {}) {
+  const url = config.url || ''
+  return Boolean(config.skipAuthRedirect)
+    || BACKGROUND_AUTH_URLS.some((path) => url.includes(path))
+}
+
+function rememberAuthError(error, phase) {
+  const config = error.config || {}
+  const payload = {
+    phase,
+    url: config.url || '',
+    status: error.response?.status || null,
+    message: error.response?.data?.message || error.message || '',
+    at: new Date().toISOString(),
+  }
+  localStorage.setItem('bediary_last_auth_error', JSON.stringify(payload))
+}
+
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('bediary_token')
@@ -152,8 +171,11 @@ axiosClient.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
         return axiosClient(originalRequest)
       } catch (refreshError) {
-        clearAuthSession(refreshError.response?.data?.message || message)
-        if (window.location.pathname !== '/login') {
+        rememberAuthError(refreshError, 'refresh-failed')
+        if (!isBackgroundAuthRequest(originalRequest)) {
+          clearAuthSession(refreshError.response?.data?.message || message)
+        }
+        if (!isBackgroundAuthRequest(originalRequest) && window.location.pathname !== '/login') {
           window.location.replace('/login')
         }
         return Promise.reject(refreshError)
@@ -161,8 +183,11 @@ axiosClient.interceptors.response.use(
     }
 
     if (status === 401) {
-      clearAuthSession(message)
-      if (window.location.pathname !== '/login') {
+      rememberAuthError(error, 'unauthorized')
+      if (!isBackgroundAuthRequest(originalRequest)) {
+        clearAuthSession(message)
+      }
+      if (!isBackgroundAuthRequest(originalRequest) && window.location.pathname !== '/login') {
         window.location.replace('/login')
       }
     }

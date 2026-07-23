@@ -36,6 +36,9 @@ public class AuthController {
     @Value("${bediary.auth.refresh-token.cookie-secure:false}")
     private boolean refreshCookieSecure;
 
+    @Value("${bediary.auth.refresh-token.cookie-same-site:Strict}")
+    private String refreshCookieSameSite;
+
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthSession session = authService.register(request);
@@ -88,7 +91,7 @@ public class AuthController {
         return ResponseCookie.from(refreshCookieName, token)
                 .httpOnly(true)
                 .secure(refreshCookieSecure) // Use true in production HTTPS. Keep false locally if testing over http://localhost.
-                .sameSite("Strict") // Blocks cross-site cookie sending to reduce CSRF exposure.
+                .sameSite(refreshCookieSameSite) // Use None+Secure when frontend/backend are different HTTPS domains.
                 .path("/api/v1/auth")
                 .maxAge(refreshTokenService.refreshTtl())
                 .build();
@@ -98,7 +101,7 @@ public class AuthController {
         return ResponseCookie.from(refreshCookieName, "")
                 .httpOnly(true)
                 .secure(refreshCookieSecure)
-                .sameSite("Strict")
+                .sameSite(refreshCookieSameSite)
                 .path("/api/v1/auth")
                 .maxAge(Duration.ZERO)
                 .build();

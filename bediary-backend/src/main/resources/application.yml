@@ -45,6 +45,7 @@ bediary:
       expiration-ms: ${REFRESH_TOKEN_EXPIRATION_MS:2592000000}
       # Set REFRESH_COOKIE_SECURE=true in production HTTPS. Keep false for localhost/mobile LAN over http.
       cookie-secure: ${REFRESH_COOKIE_SECURE:false}
+      cookie-same-site: ${REFRESH_COOKIE_SAME_SITE:Strict}
   upload-dir: ${UPLOAD_DIR:uploads}
   base-url: ${BASE_URL:http://localhost:8080/api/v1}
 

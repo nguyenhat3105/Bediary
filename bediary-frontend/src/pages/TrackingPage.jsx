@@ -2,7 +2,7 @@
 import { format } from 'date-fns'
 import { useRef } from 'react'
 import { vi } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import { Mic } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import TimelineFeed from '../components/TimelineFeed'
@@ -55,6 +55,17 @@ function extractFirstNumber(text) {
   return match ? Number(match[1]) : null
 }
 
+function cleanVoiceNote(text, words = []) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/\d+(?:[\.,]\d+)?/g, '')
+    .replace(/\b(ml|mili|mililit|phút|phut|giờ|gio|tiếng|tieng|bé|be)\b/g, '')
+    .split(/\s+/)
+    .filter((word) => word && !words.includes(word))
+    .join(' ')
+    .trim()
+}
+
 function buildVoicePayload(activity, transcript, babyDob) {
   const now = new Date()
   const text = String(transcript || '').trim()
@@ -72,24 +83,28 @@ function buildVoicePayload(activity, transcript, babyDob) {
       .replace(/\b(ml|mili|mililit|bú|bu|uống|uong|ăn|an|bé|be)\b/g, '')
       .trim()
     if (foodText) metadata.food = foodText
-    metadata.note = text || `Bé bú bình thường khoảng ${metadata.value} ml`
+    const note = cleanVoiceNote(text, ['bú', 'bu', 'uống', 'uong', 'ăn', 'an', ...foodText.split(/\s+/)])
+    if (note) metadata.note = note
   }
 
   if (activity.type === 'SLEEP') {
     const duration = number ? Math.round(lower.includes('giờ') || lower.includes('gio') ? number * 60 : number) : 15
     metadata.durationMinutes = duration
-    metadata.note = text || `Bé ngủ ${duration} phút`
+    const note = cleanVoiceNote(text, ['ngủ', 'ngu'])
+    if (note) metadata.note = note
     endTime = new Date(now.getTime() + duration * 60 * 1000).toISOString()
   }
 
   if (activity.type === 'PEE') {
     metadata.diaper_type = 'WET'
-    metadata.note = text || 'Bé đi tiểu bình thường'
+    const note = cleanVoiceNote(text, ['đi', 'di', 'tiểu', 'tieu'])
+    if (note) metadata.note = note
   }
 
   if (activity.type === 'POOP') {
     metadata.diaper_type = 'POOP'
-    metadata.note = text || 'Bé đi tiêu bình thường'
+    const note = cleanVoiceNote(text, ['đi', 'di', 'tiêu', 'tieu'])
+    if (note) metadata.note = note
   }
 
   return { activityType: activity.type, startTime: now.toISOString(), endTime, metadata }
@@ -98,6 +113,7 @@ function buildVoicePayload(activity, transcript, babyDob) {
 function VoiceLogModal({ activity, babyDob, onClose, onSave }) {
   const [text, setText] = useState('')
   const [listening, setListening] = useState(false)
+  const [ready, setReady] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const recognitionRef = useRef(null)
@@ -108,7 +124,8 @@ function VoiceLogModal({ activity, babyDob, onClose, onSave }) {
 
   useEffect(() => {
     if (!SpeechRecognition) {
-      setMessage('Trình duyệt chưa hỗ trợ nhận giọng nói. Ba mẹ có thể nhập nhanh nội dung bên dưới.')
+      setReady(false)
+      setMessage('Trình duyệt này chưa hỗ trợ nhận giọng nói. Ba mẹ có thể nhập nhanh nội dung bên dưới.')
       return undefined
     }
 
@@ -120,16 +137,25 @@ function VoiceLogModal({ activity, babyDob, onClose, onSave }) {
       const transcript = Array.from(event.results).map((result) => result[0]?.transcript || '').join(' ')
       setText(transcript.trim())
     }
-    recognition.onerror = () => {
+    recognition.onerror = (event) => {
       setListening(false)
-      setMessage('Chưa nghe rõ. Ba mẹ thử nói lại hoặc nhập tay nhé.')
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        setMessage('Trình duyệt chưa được cấp quyền micro hoặc đang chặn nhận giọng nói. Hãy mở bằng Chrome/Safari và cho phép micro.')
+      } else if (event.error === 'network') {
+        setMessage('Không kết nối được dịch vụ nhận giọng nói. Ba mẹ thử lại hoặc nhập tay nhé.')
+      } else {
+        setMessage('Chưa nghe rõ. Ba mẹ thử nói lại hoặc nhập tay nhé.')
+      }
     }
     recognition.onend = () => setListening(false)
     recognitionRef.current = recognition
-    recognition.start()
-    setListening(true)
+    setReady(true)
+    setMessage('Bấm nút micro rồi nói. Trên điện thoại, thao tác này cần được kích hoạt trực tiếp từ nút mic.')
 
-    return () => recognition.stop()
+    return () => {
+      recognition.stop()
+      recognitionRef.current = null
+    }
   }, [SpeechRecognition])
 
   const toggleListening = () => {
@@ -139,8 +165,13 @@ function VoiceLogModal({ activity, babyDob, onClose, onSave }) {
       setListening(false)
     } else {
       setMessage('')
-      recognitionRef.current.start()
-      setListening(true)
+      try {
+        recognitionRef.current.start()
+        setListening(true)
+      } catch {
+        setListening(false)
+        setMessage('Chưa thể bật micro. Ba mẹ đóng popup rồi thử lại, hoặc nhập nhanh nội dung bên dưới.')
+      }
     }
   }
 
@@ -169,7 +200,7 @@ function VoiceLogModal({ activity, babyDob, onClose, onSave }) {
         <button
           type="button"
           onClick={toggleListening}
-          disabled={!recognitionRef.current}
+          disabled={!ready}
           style={{
             width: 92,
             height: 92,
@@ -187,7 +218,7 @@ function VoiceLogModal({ activity, babyDob, onClose, onSave }) {
         </button>
 
         <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--c-text-hint)', marginBottom: 14 }}>
-          {listening ? 'Đang nghe...' : 'Nhấn mic để nói lại. Ví dụ: “Bú 100 ml sữa”, “Ngủ 45 phút”.'}
+          {listening ? 'Đang nghe...' : 'Nhấn mic để bắt đầu. Ví dụ: “Bú 100 ml sữa”, “Ngủ 45 phút”.'}
         </p>
         {message && <div style={{ padding: 12, borderRadius: 14, background: '#FFF7E8', color: '#8A4B00', fontSize: 12, marginBottom: 12 }}>{message}</div>}
 
@@ -317,6 +348,50 @@ function LogModal({ initialLog, defaultDate, onClose, onSave }) {
   )
 }
 
+function DeleteLogModal({ log, babyName, onClose, onConfirm }) {
+  const [deleting, setDeleting] = useState(false)
+  const activity = ACTIVITIES.find((item) => item.type === normalizeActivityType(log)) || ACTIVITIES[0]
+
+  const confirm = async () => {
+    setDeleting(true)
+    try {
+      await onConfirm(log)
+      onClose()
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={(event) => event.target === event.currentTarget && onClose()}>
+      <div className="modal-sheet" style={{ maxWidth: 420 }}>
+        <div className="modal-handle" />
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 18 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 18, display: 'grid', placeItems: 'center', background: 'var(--c-error-bg)', color: 'var(--c-error)', flexShrink: 0 }}>
+            <Trash2 size={24} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h2 className="text-card-title font-bold">Xóa nhật ký này?</h2>
+            <p className="text-small" style={{ marginTop: 6, lineHeight: 1.5 }}>
+              Hoạt động <b>{activity.label}</b> của {babyName || 'bé'} sẽ bị xóa khỏi lịch sử hôm nay.
+            </p>
+          </div>
+          <button className="btn-icon" onClick={onClose} aria-label="Đóng"><X size={18} /></button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <button className="btn" type="button" onClick={onClose} disabled={deleting} style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', color: 'var(--c-text-1)' }}>
+            Giữ lại
+          </button>
+          <button className="btn" type="button" onClick={confirm} disabled={deleting} style={{ background: 'var(--c-error)', color: '#fff' }}>
+            {deleting ? 'Đang xóa...' : 'Xóa nhật ký'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function TrackingPage() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [logs, setLogs] = useState([])
@@ -324,6 +399,7 @@ export default function TrackingPage() {
   const [loadError, setLoadError] = useState('')
   const [toast, setToast] = useState(null)
   const [modalLog, setModalLog] = useState(null)
+  const [deleteLog, setDeleteLog] = useState(null)
   const [savingType, setSavingType] = useState(null)
   const [babyName, setBabyName] = useState('Bé yêu')
   const [babyDob, setBabyDob] = useState(null)
@@ -389,6 +465,17 @@ export default function TrackingPage() {
     showToast('success', id ? 'Đã cập nhật hoạt động' : 'Đã thêm hoạt động')
   }
 
+  const removeLog = async (log) => {
+    try {
+      await trackingApi.delete(log.id)
+      await loadLogs()
+      showToast('success', 'Đã xóa nhật ký')
+    } catch (err) {
+      showToast('error', err.response?.data?.message || 'Không thể xóa nhật ký')
+      throw err
+    }
+  }
+
   const quickLog = async (activity) => {
     if (savingType) return
     setSavingType(activity.type)
@@ -399,7 +486,6 @@ export default function TrackingPage() {
 
       if (activity.type === 'SLEEP') {
         metadata.durationMinutes = 15
-        metadata.note = 'Bé ngủ bình thường'
         endTime = new Date(now.getTime() + 15 * 60 * 1000).toISOString()
       }
 
@@ -407,17 +493,14 @@ export default function TrackingPage() {
         const ageMonths = getAgeInMonths(babyDob)
         metadata.value = getDefaultMilkMl(ageMonths)
         metadata.unit = 'ml'
-        metadata.note = `Bé bú bình thường theo mức trung bình khoảng ${metadata.value} ml/lần`
       }
 
       if (activity.type === 'PEE') {
         metadata.diaper_type = 'WET'
-        metadata.note = 'Bé đi tiểu bình thường'
       }
 
       if (activity.type === 'POOP') {
         metadata.diaper_type = 'POOP'
-        metadata.note = 'Bé đi tiêu bình thường'
       }
 
       await saveLog({ activityType: activity.type, startTime: now.toISOString(), endTime, metadata })
@@ -477,6 +560,7 @@ export default function TrackingPage() {
       <Navbar />
       {toast && <div className={`toast ${toast.type === 'success' ? 'toast-success' : 'toast-error'}`}>{toast.message}</div>}
       {modalLog && <LogModal initialLog={modalLog.id ? modalLog : null} defaultDate={new Date(modalLog.startTime)} onClose={() => setModalLog(null)} onSave={saveLog} />}
+      {deleteLog && <DeleteLogModal log={deleteLog} babyName={babyName} onClose={() => setDeleteLog(null)} onConfirm={removeLog} />}
       {voiceActivity && <VoiceLogModal activity={voiceActivity} babyDob={babyDob} onClose={() => setVoiceActivity(null)} onSave={saveVoiceLog} />}
 
       <main className="page-container">
@@ -542,7 +626,7 @@ export default function TrackingPage() {
               <button onClick={loadLogs} className="btn-icon" style={{ width: 36, height: 36 }}><RefreshCw size={16} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} /></button>
             </div>
           </div>
-          <TimelineFeed logs={logs} loading={loading} babyName={babyName} onEdit={(log) => setModalLog(log)} />
+          <TimelineFeed logs={logs} loading={loading} babyName={babyName} onEdit={(log) => setModalLog(log)} onDelete={(log) => setDeleteLog(log)} />
         </div>
       </main>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

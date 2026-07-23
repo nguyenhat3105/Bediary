@@ -40,6 +40,7 @@ export const profileApi = {
 export const trackingApi = {
   log: (data) => axiosClient.post('/tracking/log', data),
   update: (id, data) => axiosClient.put(`/tracking/${id}`, data),
+  delete: (id) => axiosClient.delete(`/tracking/${id}`),
   daily: (date) => axiosClient.get(`/tracking/daily?date=${date}`),
 }
 

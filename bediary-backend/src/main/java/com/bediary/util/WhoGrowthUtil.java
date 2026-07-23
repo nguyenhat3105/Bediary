@@ -90,8 +90,8 @@ public class WhoGrowthUtil {
         };
 
         String heightText = switch (hs) {
-            case "SHORT" -> "Chiều cao thấp so với tuổi";
-            case "TALL" -> "Chiều cao cao so với tuổi";
+            case "SHORT" -> "Thấp so với tuổi";
+            case "TALL" -> "Chiều cao vượt trội so với tuổi";
             default -> "Chiều cao trong chuẩn";
         };
 

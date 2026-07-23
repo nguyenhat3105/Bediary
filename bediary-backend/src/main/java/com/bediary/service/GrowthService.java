@@ -152,7 +152,7 @@ public class GrowthService {
 
     private GrowthRecordResponse toResponse(GrowthRecord r) {
         String statusText = whoGrowthUtil.getStatusText(r.getWeightStatus(), r.getHeightStatus());
-        String suggestion = buildSuggestion(r);
+        String suggestion = makeSuggestionParentFriendly(buildSuggestion(r));
         return new GrowthRecordResponse(
                 r.getId(),
                 r.getAgeDays(),
@@ -169,6 +169,18 @@ public class GrowthService {
                 suggestion,
                 r.getRecordedAt()
         );
+    }
+
+    private String makeSuggestionParentFriendly(String suggestion) {
+        if (suggestion == null || suggestion.isBlank()) return suggestion;
+        return suggestion
+                .replace("dưới -3SD theo WHO", "thấp hơn nhiều so với vùng thường gặp theo chuẩn WHO")
+                .replace("dưới -2SD", "thấp hơn vùng thường gặp theo tuổi")
+                .replace("trên +2SD theo tuổi", "cao hơn vùng thường gặp theo tuổi")
+                .replace("trên +2SD", "cao hơn đa số bé cùng tuổi")
+                .replace("-3SD", "mức rất thấp so với chuẩn")
+                .replace("-2SD", "thấp hơn vùng thường gặp")
+                .replace("+2SD", "cao hơn vùng thường gặp");
     }
 
     private void add(List<NutritionSuggestionResponse.NutritionItem> items,

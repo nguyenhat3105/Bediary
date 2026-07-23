@@ -51,6 +51,19 @@ public class TrackingController {
         return ResponseEntity.ok(trackingService.updateActivity(id, request, userId, familyId));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteActivity(
+            @PathVariable UUID id,
+            HttpServletRequest httpRequest) {
+
+        String token = extractToken(httpRequest);
+        UUID userId = jwtUtil.extractUserId(token);
+        UUID familyId = resolveFamilyId(token, userId);
+
+        trackingService.deleteActivity(id, userId, familyId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/daily")
     public ResponseEntity<List<TrackingLogResponse>> getDailyLogs(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,

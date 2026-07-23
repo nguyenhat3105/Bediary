@@ -1,6 +1,6 @@
 ﻿import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Clock, Pencil } from 'lucide-react'
+import { Clock, Pencil, Trash2 } from 'lucide-react'
 
 const ACTIVITY_CONFIG = {
   SLEEP: { icon: '☾', label: 'Ngủ', bg: '#F0EBFF', color: '#7C3AED' },
@@ -10,6 +10,34 @@ const ACTIVITY_CONFIG = {
   DIAPER: { icon: '◇', label: 'Thay tã', bg: 'var(--c-warning-bg)', color: 'var(--c-warning)' },
 }
 
+function isDuplicateOrDefaultNote(type, metadata = {}, note) {
+  const normalized = String(note || '').toLowerCase().trim()
+  if (!normalized) return true
+
+  const defaultNotes = [
+    'bé ngủ bình thường',
+    'bé đi tiểu bình thường',
+    'bé đi tiêu bình thường',
+  ]
+  if (defaultNotes.includes(normalized)) return true
+  if (normalized.startsWith('bé bú bình thường')) return true
+
+  if (type === 'FEED' && metadata.value !== undefined && metadata.value !== '') {
+    const value = String(metadata.value)
+    const unit = String(metadata.unit || 'ml').toLowerCase()
+    if (normalized === `${value} ${unit}` || normalized === value) return true
+    if (normalized === `bú ${value} ${unit}` || normalized === `bu ${value} ${unit}`) return true
+  }
+
+  if (type === 'SLEEP' && metadata.durationMinutes) {
+    const duration = String(metadata.durationMinutes)
+    if (normalized === `${duration} phút` || normalized === `${duration} phut`) return true
+    if (normalized === `ngủ ${duration} phút` || normalized === `ngu ${duration} phut`) return true
+  }
+
+  return false
+}
+
 function formatMetadata(type, metadata = {}) {
   const parts = []
   if (type === 'FEED') {
@@ -17,17 +45,17 @@ function formatMetadata(type, metadata = {}) {
     if (metadata.food) parts.push(metadata.food)
   }
   if (type === 'SLEEP' && metadata.durationMinutes) parts.push(`${metadata.durationMinutes} phút`)
-  if (type === 'PEE') parts.push('Tã ướt')
+  if (type === 'PEE') parts.push('Đi tiểu')
   if (type === 'POOP') parts.push('Đi tiêu')
   if (type === 'DIAPER' && metadata.diaper_type) {
-    const label = { WET: 'Tã ướt', POOP: 'Đi ngoài', BOTH: 'Ướt và đi ngoài', DRY: 'Tã khô' }[metadata.diaper_type] || metadata.diaper_type
+    const label = { WET: 'Đi tiểu', POOP: 'Đi tiêu', BOTH: 'Đi tiểu và đi tiêu', DRY: 'Tã khô' }[metadata.diaper_type] || metadata.diaper_type
     parts.push(label)
   }
-  if (metadata.note) parts.push(metadata.note)
+  if (metadata.note && !isDuplicateOrDefaultNote(type, metadata, metadata.note)) parts.push(metadata.note)
   return parts.length ? parts.join(' · ') : null
 }
 
-export default function TimelineFeed({ logs, loading, onEdit, babyName }) {
+export default function TimelineFeed({ logs, loading, onEdit, onDelete, babyName }) {
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -83,6 +111,17 @@ export default function TimelineFeed({ logs, loading, onEdit, babyName }) {
                   {onEdit && (
                     <button type="button" className="btn-icon" onClick={() => onEdit(log)} aria-label="Chỉnh sửa hoạt động" style={{ width: 32, height: 32 }}>
                       <Pencil size={14} />
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      onClick={() => onDelete(log)}
+                      aria-label="Xóa hoạt động"
+                      style={{ width: 32, height: 32, color: 'var(--c-error)' }}
+                    >
+                      <Trash2 size={14} />
                     </button>
                   )}
                 </div>

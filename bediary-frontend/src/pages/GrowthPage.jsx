@@ -37,8 +37,8 @@ const STATUS = {
   UNDERWEIGHT: { label: 'Thiếu cân', bg: '#FFF7E5', color: '#B76700', border: '#FFD9A0', Icon: AlertTriangle },
   SEVERELY_UNDERWEIGHT: { label: 'Suy dinh dưỡng', bg: '#FFF0F0', color: '#C9335C', border: '#FFB3C6', Icon: AlertCircle },
   OVERWEIGHT: { label: 'Thừa cân', bg: '#FFF0F0', color: '#C9335C', border: '#FFB3C6', Icon: AlertTriangle },
-  SHORT: { label: 'Chiều cao thấp', bg: '#FFF7E5', color: '#B76700', border: '#FFD9A0', Icon: AlertTriangle },
-  TALL: { label: 'Chiều cao cao', bg: '#E8F8EF', color: '#18794E', border: '#C3EDD5', Icon: CheckCircle2 },
+  SHORT: { label: 'Thấp', bg: '#FFF7E5', color: '#B76700', border: '#FFD9A0', Icon: AlertTriangle },
+  TALL: { label: 'Chiều cao vượt trội', bg: '#E8F8EF', color: '#18794E', border: '#C3EDD5', Icon: CheckCircle2 },
 }
 
 const FOOD_ICONS = {
@@ -58,6 +58,18 @@ const FOOD_ICONS = {
 
 function statusOf(key) {
   return STATUS[key] || STATUS.NORMAL
+}
+
+function growthPlainText(status, percentile) {
+  const value = Number(percentile)
+  if (status === 'SEVERELY_UNDERWEIGHT') return 'Thấp hơn nhiều so với vùng thường gặp'
+  if (status === 'UNDERWEIGHT' || status === 'SHORT') return 'Thấp hơn vùng thường gặp theo tuổi'
+  if (status === 'OVERWEIGHT' || status === 'TALL') return 'Cao hơn đa số bé cùng tuổi'
+  if (Number.isFinite(value)) {
+    if (value >= 97) return 'Cao hơn đa số bé cùng tuổi'
+    if (value <= 3) return 'Thấp hơn vùng thường gặp theo tuổi'
+  }
+  return 'Trong vùng phù hợp theo tuổi'
 }
 
 function fmtDate(value) {
@@ -160,7 +172,10 @@ function StatusBlock({ latest }) {
             </div>
             <strong style={{ fontSize: 13, color: weight.color }}>{weight.label}</strong>
           </div>
-          {latest?.weightZScore != null && (
+          <p style={{ margin: '8px 0 0', fontSize: 11, color: weight.color }}>
+            {growthPlainText(latest.weightStatus, latest.weightPercentile)}
+          </p>
+          {latest?.weightZScore != null && false && (
             <p style={{ margin: '8px 0 0', fontSize: 11, color: weight.color }}>
               Z {Number(latest.weightZScore).toFixed(2)} · P{Number(latest.weightPercentile ?? 0).toFixed(1)}
             </p>
@@ -177,11 +192,14 @@ function StatusBlock({ latest }) {
             </div>
             <strong style={{ fontSize: 13, color: height.color }}>{height.label}</strong>
           </div>
-          {latest?.heightZScore != null && (
+          {latest?.heightZScore != null && false && (
             <p style={{ margin: '8px 0 0', fontSize: 11, color: height.color }}>
               Z {Number(latest.heightZScore).toFixed(2)} · P{Number(latest.heightPercentile ?? 0).toFixed(1)}
             </p>
           )}
+          <p style={{ margin: '8px 0 0', fontSize: 11, color: height.color }}>
+            {growthPlainText(latest.heightStatus, latest.heightPercentile)}
+          </p>
         </div>
       </div>
 

@@ -73,6 +73,19 @@ public class TrackingService {
         return toResponse(trackingLogRepository.save(log));
     }
 
+    @Transactional
+    public void deleteActivity(UUID logId, UUID userId, UUID familyId) {
+        ensureCanWrite(familyId, userId);
+
+        TrackingLog log = trackingLogRepository.findById(logId)
+                .orElseThrow(() -> new IllegalArgumentException("Tracking log not found"));
+        if (!log.getFamily().getId().equals(familyId)) {
+            throw new AccessDeniedException("Tracking log does not belong to this family");
+        }
+
+        trackingLogRepository.delete(log);
+    }
+
     @Transactional(readOnly = true)
     public List<TrackingLogResponse> getDailyLogs(LocalDate date, UUID familyId) {
         ZoneId vietnamZone = ZoneId.of("Asia/Ho_Chi_Minh");

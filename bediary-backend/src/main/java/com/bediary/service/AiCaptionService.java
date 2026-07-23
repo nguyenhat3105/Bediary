@@ -115,7 +115,20 @@ public class AiCaptionService {
         String knowledgeContext = StringUtils.hasText(reviewedKnowledge)
                 ? "\n\nTài liệu tri thức đã được duyệt lâm sàng liên quan:\n" + reviewedKnowledge
                 : "";
+        String relaxedClinicalPolicy = """
 
+                Quy tắc ưu tiên mới để trả lời sát hơn:
+                - Không trả lời kiểu quá phòng thủ. Được phép nhận xét rõ: điểm nào ổn, điểm nào lệch, mức độ đáng chú ý thấp/vừa/cao.
+                - Được phép nói "có thể liên quan đến..." hoặc "nên ưu tiên kiểm tra..." khi dữ liệu gợi ý một khả năng hợp lý.
+                - Không cần lặp lại nhiều lần rằng AI không thay thế bác sĩ. Chỉ nhắc đi khám khi có dấu hiệu đỏ hoặc dữ liệu cho thấy rủi ro đáng kể.
+                - Nếu dữ liệu app ít, vẫn phải nhận xét trên dữ liệu đang có, rồi nói chính xác cần nhập thêm mục nào để đánh giá chắc hơn.
+                - Câu hỏi trực tiếp của ba mẹ luôn quan trọng hơn context trang hiện tại. Nếu ba mẹ hỏi về "bé nóng", "sốt", "biếng ăn", "bú kém", "bỏ bú", "mệt", "quấy", phải trả lời triệu chứng đó trước; không mở bài bằng cân nặng/chiều cao/tăng trưởng trừ khi câu hỏi yêu cầu.
+                - Với câu "bé đang nóng, biếng ăn": phải nói ngay cần đo nhiệt độ bằng nhiệt kế, ghi số độ và thời điểm; kiểm tra bé uống/bú được bao nhiêu; đếm số lần đi tiểu trong 6-12 giờ; quan sát tỉnh táo, môi/miệng khô, nôn, tiêu chảy, phát ban hoặc khó thở.
+                - Nếu chưa có số đo nhiệt độ, không gọi chắc là sốt; hãy nói "bé đang nóng/chưa rõ có sốt thật hay không". Nếu có sốt hoặc ăn/bú giảm rõ, ưu tiên theo dõi sát hơn trong ngày.
+                - Với câu hỏi về nhật ký hôm nay, hãy đưa nhận xét như một người đồng hành chăm bé: cụ thể, thẳng, có thứ tự ưu tiên, tránh giáo điều.
+                - Không dùng cụm chung chung như "theo dõi thêm", "ăn uống đầy đủ", "sinh hoạt hợp lý" nếu không nêu rõ theo dõi gì, trong bao lâu, và ngưỡng nào đáng lo.
+                - Kết luận nên có màu sắc đánh giá: "hôm nay dữ liệu nghiêng về thiếu thông tin bú", "đi tiêu/đi tiểu cần ưu tiên kiểm tra", "giấc ngủ đang ghi nhận hơi ít".
+                """;
         String systemPrompt = "Bạn là trợ lý chăm sóc em bé của ứng dụng Bediary. " +
                 "Trả lời bằng tiếng Việt, rõ ràng, thực tế, không phóng đại. " +
                 "Chỉ đưa khuyến nghị chăm sóc phổ thông dựa trên dữ liệu được cung cấp và tài liệu tham khảo. " +
@@ -123,10 +136,12 @@ public class AiCaptionService {
                 "Nếu dữ liệu thiếu, hãy nói rõ thiếu dữ liệu nào thay vì suy đoán. " +
                 "Nếu có dấu hiệu đỏ như sốt cao, khó thở, tím tái, co giật, bỏ bú, li bì, mất nước, nôn liên tục, tiêu chảy nhiều, hoặc trẻ dưới 3 tháng bị sốt, phải khuyên đi khám ngay. " +
                 "Không nhận dạng khuôn mặt, danh tính hoặc suy luận thông tin nhạy cảm về trẻ. " +
-                "Định dạng bắt buộc: 1. Kết luận ngắn; 2. Dữ liệu đáng chú ý; 3. Việc nên làm ngay hôm nay; 4. Khi cần hỏi bác sĩ/đi khám.";
+                "Định dạng bắt buộc: 1. Kết luận ngắn; 2. Dữ liệu đáng chú ý; 3. Việc nên làm ngay hôm nay; 4. Khi cần hỏi bác sĩ/đi khám. " +
+                relaxedClinicalPolicy;
 
-        String userPrompt = babyContext + "\n\n" + guideline + knowledgeContext + extraContext +
-                "\n\nCâu hỏi của ba mẹ: " + request.question().trim();
+        String userPrompt = "Câu hỏi của ba mẹ cần trả lời trực tiếp trước: " + request.question().trim()
+                + "\n\n" + babyContext
+                + "\n\n" + guideline + knowledgeContext + relaxedClinicalPolicy + extraContext;
 
         Map<String, Object> requestBody = Map.of(
                 "model", chatModel,
@@ -134,13 +149,13 @@ public class AiCaptionService {
                         Map.of("role", "system", "content", systemPrompt),
                         Map.of("role", "user", "content", userPrompt)
                 ),
-                "temperature", 0.15,
-                "max_tokens", 900
+                "temperature", 0.35,
+                "max_tokens", 1100
         );
 
         try {
             String rawResponse = callGroq(requestBody);
-            return new AiChatResponse(extractAssistantText(rawResponse), SAFETY_NOTE);
+            return new AiChatResponse(extractAssistantText(rawResponse), null);
         } catch (Exception e) {
             log.error("Groq chat call failed: {}", e.getMessage());
             return new AiChatResponse(
@@ -321,3 +336,4 @@ public class AiCaptionService {
         return root.path("choices").get(0).path("message").path("content").asText().trim();
     }
 }
+

@@ -121,6 +121,7 @@ public class FamilyController {
                     case ADMIN     -> "Quản trị hệ thống";
                     case PARENT    -> "Ba mẹ";
                     case CAREGIVER -> "Người chăm sóc";
+                    case DOCTOR    -> "Bác sĩ";
                     case VIEWER    -> "Người thân";
                 }
             )).toList();
@@ -143,12 +144,11 @@ public class FamilyController {
         if (memberId.equals(currentUserId)) {
             return ResponseEntity.badRequest().build();
         }
-        familyMemberRepository.findByFamilyIdAndUserId(familyId, memberId)
-            .ifPresent(familyMemberRepository::delete);
+        familyService.updateHouseholdMember(familyId, currentUserId, memberId, null);
         return ResponseEntity.noContent().build();
     }
 
-    /** PATCH /api/v1/families/members/{memberId}/role — PARENT can set CAREGIVER or VIEWER */
+    /** PATCH /api/v1/families/members/{memberId}/role — PARENT can set CAREGIVER, DOCTOR or VIEWER */
     @PatchMapping("/members/{memberId}/role")
     public ResponseEntity<Map<String, String>> changeMemberRole(
             @PathVariable UUID memberId,
@@ -164,8 +164,8 @@ public class FamilyController {
         }
 
         String roleValue = body.get("role");
-        if (!"CAREGIVER".equals(roleValue) && !"VIEWER".equals(roleValue)) {
-            throw new IllegalArgumentException("role must be CAREGIVER or VIEWER");
+        if (!"CAREGIVER".equals(roleValue) && !"DOCTOR".equals(roleValue) && !"VIEWER".equals(roleValue)) {
+            throw new IllegalArgumentException("role must be CAREGIVER, DOCTOR or VIEWER");
         }
 
         FamilyMember target = familyMemberRepository.findByFamilyIdAndUserId(familyId, memberId)
@@ -177,13 +177,20 @@ public class FamilyController {
             throw new IllegalArgumentException("Cannot change parent/admin role");
         }
 
-        target.setRole(FamilyMember.Role.valueOf(roleValue));
-        familyMemberRepository.save(target);
+        familyService.updateHouseholdMember(familyId, currentUserId, memberId, FamilyMember.Role.valueOf(roleValue));
         return ResponseEntity.ok(Map.of("role", roleValue));
     }
 
     private boolean canManageFamily(FamilyMember.Role role) {
         return role == FamilyMember.Role.PARENT || role == FamilyMember.Role.ADMIN;
+    }
+
+    @PostMapping("/household/babies/{babyId}")
+    public ResponseEntity<Void> linkBaby(@PathVariable UUID babyId, HttpServletRequest request) {
+        String token = extractToken(request);
+        UUID userId = jwtUtil.extractUserId(token);
+        familyService.linkHouseholds(resolveFamilyId(token, userId), babyId, userId);
+        return ResponseEntity.noContent().build();
     }
 
     private UUID extractUserId(HttpServletRequest request) {

@@ -21,6 +21,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
@@ -30,12 +31,16 @@ public class AiKnowledgeService {
     private static final int MAX_RESULTS = 6;
     private static final int MAX_CONTEXT_CHARS = 6500;
     private static final Pattern DIACRITICS = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+    private static final Pattern EXPLICIT_MONTH_AGE = Pattern.compile("(\\d{1,2})\\s*(thang|month)");
+    private static final Pattern EXPLICIT_YEAR_AGE = Pattern.compile("(\\d{1,2})\\s*(tuoi|year)");
     private static final Set<String> STOP_WORDS = Set.of(
             "cho", "cua", "voi", "nay", "kia", "thi", "la", "va", "ve", "cac", "nhung",
-            "duoc", "khong", "be", "tre", "em", "con", "ba", "me", "bo", "hoi", "dap"
+            "duoc", "khong", "be", "tre", "em", "con", "ba", "me", "bo", "hoi", "dap",
+            "hom", "nhieu", "bao", "thang", "tuoi", "can", "nen", "biet", "lam", "gi", "the", "nao", "user"
     );
 
     private volatile List<KnowledgeEntry> entries = List.of();
+    private volatile java.util.Map<String, String> sources = java.util.Map.of();
 
     @PostConstruct
     public void load() {
@@ -46,23 +51,35 @@ public class AiKnowledgeService {
             log.warn("Could not load AI knowledge file {}: {}", MASTER_CSV, e.getMessage());
             entries = List.of();
         }
+        try (var input = new ClassPathResource("ai/knowledge/sources.json").getInputStream()) {
+            var catalog = new com.fasterxml.jackson.databind.ObjectMapper().readTree(input);
+            java.util.Map<String, String> loaded = new java.util.HashMap<>();
+            for (var source : catalog) loaded.put(source.path("id").asText(),
+                    source.path("publisher").asText() + ": " + source.path("title").asText() + " — "
+                            + source.path("url").asText() + " (" + source.path("reviewStatus").asText() + ")");
+            sources = java.util.Map.copyOf(loaded);
+        } catch (Exception e) {
+            log.warn("Knowledge source metadata unavailable: {}", e.getClass().getSimpleName());
+        }
     }
 
     public String retrieveRelevantContext(Family family, String question, String appContext) {
         if (entries.isEmpty()) return "";
 
-        int babyAgeMonths = ageInMonths(family);
-        String query = String.join(" ",
-                question == null ? "" : question,
-                appContext == null ? "" : appContext,
-                family.getBabyGender() != null ? family.getBabyGender().name() : "",
-                "thang tuoi " + babyAgeMonths
-        );
+        String normalizedQuestion = normalize(question);
+        int requestedAgeMonths = explicitAgeMonths(normalizedQuestion);
+        final int babyAgeMonths = requestedAgeMonths >= 0 ? requestedAgeMonths : ageInMonths(family);
+        // Page context must not drown out the user's actual topic.
+        String query = question == null ? "" : question;
         Set<String> queryTokens = tokenize(query);
+        if (queryTokens.isEmpty() && normalizedQuestion.matches(".*(can biet|nen biet|cham soc|phat trien).*")) {
+            queryTokens = tokenize("dinh duong ngu van dong giao tiep an toan");
+        }
         if (queryTokens.isEmpty()) return "";
+        final Set<String> searchTokens = queryTokens;
 
         List<ScoredEntry> ranked = entries.stream()
-                .map(entry -> new ScoredEntry(entry, score(entry, queryTokens, babyAgeMonths)))
+                .map(entry -> new ScoredEntry(entry, score(entry, searchTokens, babyAgeMonths)))
                 .filter(item -> item.score() > 0)
                 .sorted(Comparator.comparingInt(ScoredEntry::score).reversed())
                 .limit(MAX_RESULTS)
@@ -71,9 +88,10 @@ public class AiKnowledgeService {
         if (ranked.isEmpty()) return "";
 
         StringBuilder builder = new StringBuilder();
-        builder.append("Tai lieu tham khao clinically reviewed duoc truy xuat theo tuoi/cau hoi:\n");
+        builder.append("Tài liệu tham khảo nội bộ theo chủ đề và tuổi; mã nguồn dùng để đối chiếu, không tự bịa URL:\n");
         for (ScoredEntry item : ranked) {
             KnowledgeEntry entry = item.entry();
+            int entryStart = builder.length();
             builder.append("- [").append(entry.id()).append("] ")
                     .append(entry.category()).append(" / ").append(entry.topic()).append(": ")
                     .append(entry.title()).append("\n")
@@ -88,8 +106,14 @@ public class AiKnowledgeService {
             if (StringUtils.hasText(entry.medicalDisclaimer())) {
                 builder.append("  Luu y y khoa: ").append(entry.medicalDisclaimer()).append("\n");
             }
+            builder.append("  Nguồn: ").append(entry.sourceId()).append(" / ").append(entry.sourceSection()).append("\n");
+            if (sources.containsKey(entry.sourceId())) builder.append("  ").append(sources.get(entry.sourceId())).append("\n");
+            if (builder.length() > MAX_CONTEXT_CHARS) {
+                builder.setLength(entryStart);
+                break;
+            }
         }
-        return limit(builder.toString(), MAX_CONTEXT_CHARS);
+        return builder.toString();
     }
 
     private List<KnowledgeEntry> loadCsv() throws Exception {
@@ -152,21 +176,24 @@ public class AiKnowledgeService {
     }
 
     private int score(KnowledgeEntry entry, Set<String> queryTokens, int babyAgeMonths) {
+        if (babyAgeMonths >= 0 && !isAgeRelevant(entry, babyAgeMonths)) return 0;
         int score = 0;
-        boolean ageRelevant = isAgeRelevant(entry, babyAgeMonths);
-        if (ageRelevant) score += 12;
-        else if (entry.ageMinMonths() != null || entry.ageMaxMonths() != null) score -= 4;
 
         for (String token : queryTokens) {
-            if (entry.searchable().contains(token)) score += 2;
-            if (normalize(entry.title()).contains(token)) score += 3;
-            if (normalize(entry.keywords()).contains(token)) score += 4;
-            if (normalize(entry.questions()).contains(token)) score += 3;
-            if (normalize(entry.category()).contains(token) || normalize(entry.topic()).contains(token)) score += 2;
+            if (matchesToken(entry.content(), token)) score += 1;
+            if (matchesToken(entry.title(), token)) score += 8;
+            if (matchesToken(entry.keywords(), token)) score += 6;
+            if (matchesToken(entry.questions(), token)) score += 4;
+            if (matchesToken(entry.category(), token) || matchesToken(entry.topic(), token)) score += 4;
         }
 
-        if (entry.searchable().contains("be " + babyAgeMonths + " thang")) score += 6;
+        if (score > 0 && babyAgeMonths >= 0) score += 2;
         return score;
+    }
+
+    private boolean matchesToken(String text, String token) {
+        return Pattern.compile("(?<![a-z0-9])" + Pattern.quote(token) + "(?![a-z0-9])")
+                .matcher(normalize(text)).find();
     }
 
     private boolean isAgeRelevant(KnowledgeEntry entry, int babyAgeMonths) {
@@ -178,9 +205,31 @@ public class AiKnowledgeService {
         return babyAgeMonths >= lower && babyAgeMonths <= upper;
     }
 
+    private int explicitAgeMonths(String normalizedQuestion) {
+        if (!StringUtils.hasText(normalizedQuestion)) return -1;
+        Matcher matcher = Pattern.compile("\\b(\\d{1,2})\\s*(thang|months?|tuoi|years?)(?:\\s+(\\d{1,2})\\s*(?:thang|months?))?\\b").matcher(normalizedQuestion);
+        int age = -1;
+        while (matcher.find()) {
+            int value = Integer.parseInt(matcher.group(1));
+            boolean years = matcher.group(2).equals("tuoi") || matcher.group(2).startsWith("year");
+            age = years ? value * 12 : value;
+            if (years && matcher.group(3) != null) age += Integer.parseInt(matcher.group(3));
+        }
+        return age;
+    }
+
+    private int parsePositiveInt(String value, int fallback) {
+        try {
+            int parsed = Integer.parseInt(value);
+            return parsed >= 0 ? parsed : fallback;
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
     private int ageInMonths(Family family) {
-        LocalDate dob = family.getBabyDob();
-        if (dob == null) return 0;
+        LocalDate dob = family == null ? null : family.getBabyDob();
+        if (dob == null) return -1;
         Period age = Period.between(dob, LocalDate.now());
         return Math.max(0, age.getYears() * 12 + age.getMonths());
     }
@@ -189,7 +238,7 @@ public class AiKnowledgeService {
         String normalized = normalize(text);
         Set<String> result = new LinkedHashSet<>();
         for (String token : normalized.split("[^a-z0-9]+")) {
-            if (token.length() > 2 && !STOP_WORDS.contains(token)) {
+            if (token.length() >= 2 && !token.matches("\\d+") && !STOP_WORDS.contains(token)) {
                 result.add(token);
             }
         }

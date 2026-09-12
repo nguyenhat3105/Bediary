@@ -48,6 +48,37 @@ bediary:
       cookie-same-site: ${REFRESH_COOKIE_SAME_SITE:Strict}
   upload-dir: ${UPLOAD_DIR:uploads}
   base-url: ${BASE_URL:http://localhost:8080/api/v1}
+  ai:
+    safety:
+      blocked-medications:
+        - paracetamol
+        - acetaminophen
+        - ibuprofen
+        - amoxicillin
+        - azithromycin
+        - cefixime
+        - cephalexin
+        - prednisolone
+        - dexamethasone
+        - salbutamol
+        - domperidone
+        - loperamide
+        - loratadine
+        - cetirizine
+        - chlorpheniramine
+        - oresol
+        - zinc
+      dose-units:
+        - mg
+        - ml
+        - mcg
+        - g
+        - giot
+        - vien
+        - goi
+        - lan/ngay
+        - lan moi ngay
+        - mg/kg
 
 logging:
   level:
@@ -56,9 +87,11 @@ logging:
 
 groq:
   api-key: ${GROQ_API_KEY:}
+  api-keys: ${GROQ_API_KEYS:}
   api-url: ${GROQ_API_URL:https://api.groq.com/openai/v1/chat/completions}
-  vision-model: ${GROQ_VISION_MODEL:meta-llama/llama-4-scout-17b-16e-instruct}
-  chat-model: ${GROQ_CHAT_MODEL:llama-3.3-70b-versatile}
+  vision-model: ${GROQ_VISION_MODEL:qwen/qwen3.6-27b}
+  vision-fallback-models: ${GROQ_VISION_FALLBACK_MODELS:}
+  chat-model: ${GROQ_CHAT_MODEL:openai/gpt-oss-20b}
 
 supabase:
   url: ${SUPABASE_URL:}

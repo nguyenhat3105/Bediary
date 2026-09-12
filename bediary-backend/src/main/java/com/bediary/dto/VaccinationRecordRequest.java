@@ -9,7 +9,10 @@ public record VaccinationRecordRequest(
         @NotBlank String vaccineName,
         int doseNumber,
         @NotNull LocalDate scheduledDate,
+        LocalDate originalScheduledDate,
         String category,
         String ageLabel,
+        String source,
+        String status,
         String notes
 ) {}

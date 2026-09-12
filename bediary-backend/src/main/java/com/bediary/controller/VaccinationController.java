@@ -42,6 +42,17 @@ public class VaccinationController {
         return ResponseEntity.ok(vaccinationService.createRecord(request, userId, familyId));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<VaccinationRecordResponse> updateRecord(
+            @PathVariable UUID id,
+            @Valid @RequestBody VaccinationRecordRequest request,
+            HttpServletRequest httpRequest) {
+        String token = extractToken(httpRequest);
+        UUID userId = jwtUtil.extractUserId(token);
+        UUID familyId = resolveFamilyId(token, userId);
+        return ResponseEntity.ok(vaccinationService.updateRecord(id, request, userId, familyId));
+    }
+
     @PostMapping("/{id}/complete")
     public ResponseEntity<VaccinationRecordResponse> completeVaccination(
             @PathVariable UUID id,

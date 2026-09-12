@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.util.StringUtils;
@@ -20,6 +21,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.Collections;
 import java.util.UUID;
 
 @Service
@@ -29,6 +32,17 @@ public class MediaStorageService {
     private static final String LOCAL_PREFIX = "local:";
 
     private final RestClient restClient;
+    private final RestClient signingClient;
+    private final Map<String, CachedUrl> signedUrls = Collections.synchronizedMap(
+            new LinkedHashMap<>(128, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, CachedUrl> eldest) {
+                    return size() > 2048;
+                }
+            });
+    private volatile long signingRetryAfter;
+
+    private record CachedUrl(String url, long expiresAt) {}
 
     @Value("${supabase.url:}")
     private String supabaseUrl;
@@ -50,6 +64,11 @@ public class MediaStorageService {
 
     public MediaStorageService(RestClient restClient) {
         this.restClient = restClient;
+        // URL signing is optional page decoration, and must not wait as long as uploads/AI.
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(1000);
+        factory.setReadTimeout(2000);
+        this.signingClient = restClient.mutate().requestFactory(factory).build();
     }
 
     public StoredFile upload(MultipartFile file, String folder, String fallbackFilename) throws IOException {
@@ -131,9 +150,13 @@ public class MediaStorageService {
     }
 
     private String createSignedUrl(String objectPath) {
+        long now = System.currentTimeMillis();
+        CachedUrl cached = signedUrls.get(objectPath);
+        if (cached != null && cached.expiresAt() > now) return cached.url();
+        if (now < signingRetryAfter) return null;
         try {
             @SuppressWarnings("unchecked")
-            Map<String, Object> response = restClient.post()
+            Map<String, Object> response = signingClient.post()
                     .uri(storageSignUrl(objectPath))
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + serviceRoleKey)
                     .header("apikey", serviceRoleKey)
@@ -147,15 +170,26 @@ public class MediaStorageService {
                 signedUrl = response != null ? response.get("signedUrl") : null;
             }
             if (signedUrl instanceof String value && StringUtils.hasText(value)) {
-                return normalizeSupabaseSignedUrl(value);
+                String url = normalizeSupabaseSignedUrl(value);
+                long cacheSeconds = Math.max(0, signedUrlTtlSeconds - 60);
+                signedUrls.put(objectPath, new CachedUrl(url, now + cacheSeconds * 1000));
+                return url;
             }
+            signedUrls.put(objectPath, new CachedUrl(null, now + 15_000));
         } catch (Exception e) {
-            log.warn("Could not create Supabase signed URL for {}: {}", objectPath, e.getMessage());
+            // Avoid repeating the same network timeout for every avatar in one response.
+            if (e instanceof org.springframework.web.client.ResourceAccessException
+                    || e instanceof org.springframework.web.client.HttpServerErrorException) {
+                signingRetryAfter = System.currentTimeMillis() + 15_000;
+            }
+            signedUrls.put(objectPath, new CachedUrl(null, System.currentTimeMillis() + 15_000));
+            log.warn("Could not create Supabase signed URL: {}", e.getClass().getSimpleName());
         }
         return null;
     }
 
     private void deleteSupabaseObject(String objectPath) {
+        signedUrls.remove(objectPath);
         try {
             restClient.method(HttpMethod.DELETE)
                     .uri(trimTrailingSlash(supabaseUrl) + "/storage/v1/object/" + bucket)

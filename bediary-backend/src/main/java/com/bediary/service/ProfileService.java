@@ -80,6 +80,7 @@ public class ProfileService {
                             case ADMIN     -> "Quản trị hệ thống";
                             case PARENT    -> "Ba mẹ";
                             case CAREGIVER -> "Người chăm sóc";
+                            case DOCTOR    -> "Bác sĩ";
                             case VIEWER    -> "Người thân";
                         };
                         return new ProfileResponse.MemberInfo(

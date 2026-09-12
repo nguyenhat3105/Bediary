@@ -1,0 +1,64 @@
+# Local secrets (safe templates may be committed after review)
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+application-local.yml
+application-local.yaml
+application-local.properties
+application-prod.yml
+application-prod.yaml
+application-prod.properties
+secrets.yml
+secrets.yaml
+secrets.properties
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+service-account*.json
+*-firebase-adminsdk-*.json
+
+# Maven / Java output; keep Maven Wrapper and source resources
+target/
+*.class
+/*.jar
+/*.war
+.mvn/timing.properties
+.mvn/wrapper/MavenWrapperDownloader.java
+
+# Uploaded user data and local runtime files
+/uploads/
+/logs/
+*.log
+*.log.*
+*.pid
+*.hprof
+hs_err_pid*
+replay_pid*
+/tmp/
+/temp/
+/backups/
+/dumps/
+*.dump
+*.backup
+# Do not ignore *.sql: migrations and seed scripts belong in source control.
+
+# IDE / OS files
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+.factorypath
+bin/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~

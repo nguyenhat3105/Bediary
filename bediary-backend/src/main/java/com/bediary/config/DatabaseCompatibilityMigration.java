@@ -44,7 +44,7 @@ public class DatabaseCompatibilityMigration {
 
                     ALTER TABLE family_members
                         ADD CONSTRAINT family_members_role_check
-                        CHECK (role IN ('ADMIN', 'PARENT', 'CAREGIVER', 'VIEWER'));
+                        CHECK (role IN ('ADMIN', 'PARENT', 'CAREGIVER', 'DOCTOR', 'VIEWER'));
                 END $$;
                 """);
     }

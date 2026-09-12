@@ -1,0 +1,23 @@
+question,expected_intent
+Bé 6 tháng cần biết những gì?,KNOWLEDGE
+Bé 3 tháng ngủ bao nhiêu là đủ?,KNOWLEDGE
+Khi nào bé bắt đầu ăn dặm?,KNOWLEDGE
+Bé 1 tuổi nên ăn mấy bữa?,KNOWLEDGE
+Cách tập tummy time cho bé?,KNOWLEDGE
+Hôm nay bé ăn mấy lần?,TRACKING
+Hôm nay bé bú tổng bao nhiêu ml?,TRACKING
+Bé ngủ mấy giấc hôm nay?,TRACKING
+Lúc nào bé đi tiêu gần nhất?,TRACKING
+Nhật ký hôm nay có gì?,TRACKING
+Dạo này bé có gì thay đổi?,INSIGHT
+Gần đây bé ngủ có giảm không?,INSIGHT
+Nhận xét tăng trưởng của bé,INSIGHT
+Cân nặng bé có ổn không?,INSIGHT
+Có mũi vaccine nào quá hạn không?,INSIGHT
+Bé đang nóng và biếng ăn có sao không?,HEALTH_GUIDANCE
+Bé sốt có cần đi khám không?,HEALTH_GUIDANCE
+Bé bỏ bú và li bì thì làm sao?,HEALTH_GUIDANCE
+Bé tiêu chảy nhiều cần theo dõi gì?,HEALTH_GUIDANCE
+Bé khó thở phải làm gì?,HEALTH_GUIDANCE
+Bé 6 tháng ăn ít có sao không?,HEALTH_GUIDANCE
+Con em bú ít hơn mọi ngày có nguy hiểm không?,HEALTH_GUIDANCE

@@ -10,5 +10,10 @@ import java.time.LocalDate;
 public record CreateFamilyRequest(
         @NotBlank String babyName,
         @NotNull @PastOrPresent LocalDate babyDob,
-        @NotNull Family.Gender babyGender
-) {}
+        @NotNull Family.Gender babyGender,
+        java.util.UUID existingFamilyId
+) {
+    public CreateFamilyRequest(String babyName, LocalDate babyDob, Family.Gender babyGender) {
+        this(babyName, babyDob, babyGender, null);
+    }
+}

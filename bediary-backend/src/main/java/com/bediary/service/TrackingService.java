@@ -34,7 +34,8 @@ public class TrackingService {
 
     @Transactional
     public TrackingLogResponse logActivity(TrackingLogRequest request, UUID userId, UUID familyId) {
-        ensureCanWrite(familyId, userId);
+        familyMemberRepository.findByFamilyIdAndUserId(familyId, userId)
+                .orElseThrow(() -> new AccessDeniedException("User is not a member of this family"));
 
         Family family = familyRepository.findById(familyId)
                 .orElseThrow(() -> new IllegalArgumentException("Family not found"));

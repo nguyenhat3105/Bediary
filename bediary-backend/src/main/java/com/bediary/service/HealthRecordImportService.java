@@ -41,6 +41,7 @@ import java.util.LinkedHashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 
@@ -51,6 +52,7 @@ public class HealthRecordImportService {
     private static final long MAX_IMPORT_BYTES = 10L * 1024 * 1024;
 
     private final RestClient restClient;
+    private final GroqKeyPool groqKeyPool;
     private final ObjectMapper objectMapper;
     private final FamilyMemberRepository familyMemberRepository;
 
@@ -63,7 +65,7 @@ public class HealthRecordImportService {
     @Value("${groq.vision-model}")
     private String visionModel;
 
-    @Value("${groq.vision-fallback-models:qwen/qwen3.6-27b,meta-llama/llama-4-scout-17b-16e-instruct}")
+    @Value("${groq.vision-fallback-models:}")
     private String visionFallbackModels;
 
     @Value("${groq.chat-model:${groq.vision-model}}")
@@ -80,7 +82,8 @@ public class HealthRecordImportService {
                     : analyzeImage(file);
             return parseImportResponse(rawResponse);
         } catch (Exception e) {
-            log.error("Health record import failed: {}", e.getMessage(), e);
+            // Upstream/parser exceptions may include the private medical document.
+            log.error("Health record import failed: {}", e.getClass().getSimpleName());
             return importFailedResponse(readableImportError(e));
         }
     }
@@ -97,9 +100,23 @@ public class HealthRecordImportService {
     }
 
     private String readableImportError(Exception e) {
+        if (e instanceof GroqKeyPool.UnavailableException unavailable) {
+            return unavailable.retryAfterSeconds() > 0
+                    ? "Dịch vụ đọc ảnh đang tạm giới hạn lượt xử lý. Vui lòng thử lại sau khoảng "
+                        + unavailable.retryAfterSeconds() + " giây."
+                    : "Dịch vụ đọc ảnh hiện chưa khả dụng. Vui lòng thử lại sau hoặc nhập tay.";
+        }
+        if (e.getCause() instanceof Exception cause) return readableImportError(cause);
         String message = e.getMessage();
+        if (message != null && message.contains("AI_IMPORT_INVALID_RESPONSE")) {
+            return "AI trả dữ liệu chưa hoàn chỉnh sau khi thử lại. Vui lòng thử import từng trang hoặc nhập tay.";
+        }
         if (e instanceof RestClientResponseException responseException) {
             String body = responseException.getResponseBodyAsString();
+            if (body.contains("model_not_found") || body.contains("model_decommissioned")) {
+                return "Model AI không tồn tại, đã ngừng hỗ trợ hoặc tài khoản chưa có quyền truy cập. "
+                        + "Hãy kiểm tra GROQ_VISION_MODEL và GROQ_CHAT_MODEL trên backend.";
+            }
             String detail = StringUtils.hasText(body) ? " Chi tiết: " + limit(body.replaceAll("\\s+", " "), 260) : "";
             return "AI OCR trả lỗi " + responseException.getStatusCode().value() + "." + detail;
         }
@@ -154,10 +171,12 @@ public class HealthRecordImportService {
                         "temperature", 0.05,
                         "max_tokens", 2200
                 );
-                return callGroq(requestBody);
+                return callImport(requestBody);
+            } catch (GroqKeyPool.UnavailableException e) {
+                throw e;
             } catch (Exception e) {
                 lastError = e;
-                log.warn("Health import direct vision parse failed with model {}: {}", model, e.getMessage());
+                log.warn("Health import direct vision parse failed with model {}: {}", model, e.getClass().getSimpleName());
             }
         }
         if (lastError != null) throw new IllegalStateException("Vision models failed: " + lastError.getMessage(), lastError);
@@ -190,8 +209,10 @@ public class HealthRecordImportService {
                 String text = extractAssistantText(callGroq(requestBody));
                 if (isUsefulOcrText(text)) return text;
                 log.warn("Image OCR pre-pass returned no useful text with model {}", model);
+            } catch (GroqKeyPool.UnavailableException e) {
+                throw e;
             } catch (Exception e) {
-                log.warn("Image OCR pre-pass failed with model {}: {}", model, e.getMessage());
+                log.warn("Image OCR pre-pass failed with model {}: {}", model, e.getClass().getSimpleName());
             }
         }
         return "";
@@ -211,7 +232,23 @@ public class HealthRecordImportService {
                 "temperature", 0.05,
                 "max_tokens", 2200
         );
-        return callGroq(requestBody);
+        return callImport(requestBody);
+    }
+
+    private String callImport(Map<String, Object> requestBody) {
+        Map<String, Object> request = new HashMap<>(requestBody);
+        for (int attempt = 0; attempt < 2; attempt++) {
+            request.put("max_tokens", attempt == 0 ? 4400 : 8800);
+            String response = callGroq(request);
+            try {
+                parseImportResponse(response);
+                return response;
+            } catch (Exception e) {
+                // Do not log the parser exception: it can contain medical document text.
+                log.warn("Health import returned incomplete or invalid JSON (attempt {})", attempt + 1);
+            }
+        }
+        throw new IllegalStateException("AI_IMPORT_INVALID_RESPONSE");
     }
 
     private String analyzePdf(MultipartFile file) throws IOException {
@@ -274,6 +311,13 @@ public class HealthRecordImportService {
     private HealthRecordImportResponse parseImportResponse(String rawResponse) throws Exception {
         String content = extractAssistantText(rawResponse);
         JsonNode root = objectMapper.readTree(extractJsonObject(content));
+        if (root == null || !root.isObject() || !root.path("records").isArray()
+                || !root.path("warnings").isArray() || !root.path("extractedText").isTextual()) {
+            throw new IllegalStateException("AI_IMPORT_INVALID_RESPONSE");
+        }
+        for (JsonNode record : root.path("records")) {
+            if (!record.isObject()) throw new IllegalStateException("AI_IMPORT_INVALID_RESPONSE");
+        }
         List<String> warnings = new ArrayList<>();
         root.path("warnings").forEach(node -> warnings.add(node.asText()));
 
@@ -343,16 +387,7 @@ public class HealthRecordImportService {
     }
 
     private String callGroq(Map<String, Object> requestBody) {
-        if (!StringUtils.hasText(groqApiKey)) {
-            throw new IllegalStateException("GROQ_API_KEY is not configured");
-        }
-        return restClient.post()
-                .uri(groqApiUrl)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + groqApiKey)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(requestBody)
-                .retrieve()
-                .body(String.class);
+        return groqKeyPool.call(restClient, groqApiUrl, groqApiKey, requestBody);
     }
 
     private List<String> visionModels() {
@@ -369,13 +404,22 @@ public class HealthRecordImportService {
 
     private String extractAssistantText(String rawResponse) throws Exception {
         JsonNode root = objectMapper.readTree(rawResponse);
-        return root.path("choices").get(0).path("message").path("content").asText().trim();
+        JsonNode choice = root.path("choices").path(0);
+        if ("length".equals(choice.path("finish_reason").asText())) {
+            throw new IllegalStateException("AI_IMPORT_INVALID_RESPONSE");
+        }
+        JsonNode content = choice.path("message").path("content");
+        if (!content.isTextual() || !StringUtils.hasText(content.asText())) {
+            throw new IllegalStateException("AI_IMPORT_INVALID_RESPONSE");
+        }
+        return content.asText().trim();
     }
 
     private String extractJsonObject(String value) {
         int start = value.indexOf('{');
-        int end = value.lastIndexOf('}');
-        if (start >= 0 && end > start) return value.substring(start, end + 1);
+        // Keep the full JSON suffix so a truncated outer object cannot be hidden
+        // by cutting at the closing brace of its last complete record.
+        if (start >= 0) return value.substring(start);
         return value;
     }
 

@@ -48,6 +48,7 @@ public class DashboardService {
                         familyId, today, in30Days);
 
         List<DashboardResponse.VaccinationSummary> vacSummaries = upcoming.stream()
+                .filter(v -> v.getStatus() == null || v.getStatus() == VaccinationRecord.Status.SCHEDULED)
                 .map(v -> new DashboardResponse.VaccinationSummary(
                         v.getId(),
                         v.getVaccineName(),

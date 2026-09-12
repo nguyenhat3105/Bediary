@@ -36,10 +36,40 @@ public class VaccinationService {
                 .vaccineName(request.vaccineName())
                 .doseNumber(request.doseNumber() > 0 ? request.doseNumber() : 1)
                 .scheduledDate(request.scheduledDate())
+                .originalScheduledDate(request.originalScheduledDate() != null ? request.originalScheduledDate() : request.scheduledDate())
                 .category(normalizeCategory(request.category()))
                 .ageLabel(request.ageLabel())
+                .source(normalizeSource(request.source(), request.scheduleKey()))
+                .status(normalizeStatus(request.status()))
                 .notes(request.notes())
                 .build();
+        if (record.getStatus() == VaccinationRecord.Status.COMPLETED) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            record.setCompletedAt(Instant.now());
+            record.setCompletedBy(user);
+        }
+
+        return toResponse(vaccinationRecordRepository.save(record));
+    }
+
+    @Transactional
+    public VaccinationRecordResponse updateRecord(UUID recordId, VaccinationRecordRequest request, UUID userId, UUID familyId) {
+        requireParentManager(userId, familyId);
+        VaccinationRecord record = getRecordForFamily(recordId, familyId);
+
+        record.setScheduleKey(request.scheduleKey());
+        record.setVaccineName(request.vaccineName());
+        record.setDoseNumber(request.doseNumber() > 0 ? request.doseNumber() : 1);
+        record.setScheduledDate(request.scheduledDate());
+        if (record.getOriginalScheduledDate() == null || request.originalScheduledDate() != null) {
+            record.setOriginalScheduledDate(request.originalScheduledDate() != null ? request.originalScheduledDate() : request.scheduledDate());
+        }
+        record.setCategory(normalizeCategory(request.category()));
+        record.setAgeLabel(request.ageLabel());
+        record.setSource(normalizeSource(request.source(), request.scheduleKey()));
+        applyStatus(record, normalizeStatus(request.status()), userId);
+        record.setNotes(request.notes());
 
         return toResponse(vaccinationRecordRepository.save(record));
     }
@@ -59,6 +89,7 @@ public class VaccinationService {
 
         record.setCompletedAt(Instant.now());
         record.setCompletedBy(user);
+        record.setStatus(VaccinationRecord.Status.COMPLETED);
         return toResponse(vaccinationRecordRepository.save(record));
     }
 
@@ -68,6 +99,7 @@ public class VaccinationService {
         VaccinationRecord record = getRecordForFamily(recordId, familyId);
         record.setCompletedAt(null);
         record.setCompletedBy(null);
+        record.setStatus(VaccinationRecord.Status.SCHEDULED);
         return toResponse(vaccinationRecordRepository.save(record));
     }
 
@@ -105,16 +137,50 @@ public class VaccinationService {
         return "REQUIRED".equalsIgnoreCase(value) ? "REQUIRED" : "OPTIONAL";
     }
 
+    private VaccinationRecord.Source normalizeSource(String value, String scheduleKey) {
+        if ("CUSTOM".equalsIgnoreCase(value)) return VaccinationRecord.Source.CUSTOM;
+        return StringUtils.hasText(scheduleKey) ? VaccinationRecord.Source.SYSTEM : VaccinationRecord.Source.CUSTOM;
+    }
+
+    private VaccinationRecord.Status normalizeStatus(String value) {
+        if (!StringUtils.hasText(value)) return VaccinationRecord.Status.SCHEDULED;
+        try {
+            return VaccinationRecord.Status.valueOf(value.toUpperCase());
+        } catch (Exception ignored) {
+            return VaccinationRecord.Status.SCHEDULED;
+        }
+    }
+
+    private void applyStatus(VaccinationRecord record, VaccinationRecord.Status status, UUID userId) {
+        record.setStatus(status);
+        if (status == VaccinationRecord.Status.COMPLETED) {
+            if (record.getCompletedAt() == null) {
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                record.setCompletedAt(Instant.now());
+                record.setCompletedBy(user);
+            }
+        } else {
+            record.setCompletedAt(null);
+            record.setCompletedBy(null);
+        }
+    }
+
     private VaccinationRecordResponse toResponse(VaccinationRecord r) {
-        boolean overdue = r.getCompletedAt() == null && r.getScheduledDate().isBefore(LocalDate.now());
+        VaccinationRecord.Status status = r.getStatus() != null ? r.getStatus() : (r.getCompletedAt() != null ? VaccinationRecord.Status.COMPLETED : VaccinationRecord.Status.SCHEDULED);
+        VaccinationRecord.Source source = r.getSource() != null ? r.getSource() : (StringUtils.hasText(r.getScheduleKey()) ? VaccinationRecord.Source.SYSTEM : VaccinationRecord.Source.CUSTOM);
+        boolean overdue = status == VaccinationRecord.Status.SCHEDULED && r.getCompletedAt() == null && r.getScheduledDate().isBefore(LocalDate.now());
         return new VaccinationRecordResponse(
                 r.getId(),
                 r.getScheduleKey(),
                 r.getVaccineName(),
                 r.getDoseNumber(),
                 r.getScheduledDate(),
+                r.getOriginalScheduledDate(),
                 r.getCategory(),
                 r.getAgeLabel(),
+                source.name(),
+                status.name(),
                 r.getCompletedAt(),
                 r.getNotes(),
                 overdue,

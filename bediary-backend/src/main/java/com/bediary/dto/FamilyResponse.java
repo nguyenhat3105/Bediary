@@ -10,5 +10,6 @@ public record FamilyResponse(
         UUID familyId,
         String babyName,
         String inviteCode,
-        String newToken   // JWT mới với familyId đã được gắn
+        String newToken,   // JWT mới với familyId đã được gắn
+        String role
 ) {}

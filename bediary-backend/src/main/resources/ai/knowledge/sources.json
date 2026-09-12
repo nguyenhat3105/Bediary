@@ -1,0 +1,492 @@
+[
+    {
+        "id":  "SRC01",
+        "title":  "Milestone Moments",
+        "publisher":  "CDC",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.cdc.gov/act-early/media/pdfs/2025/05/Milestone-Moments-Booklet21_Eng_Sng_FNL-508-1.pdf"
+    },
+    {
+        "id":  "SRC02",
+        "title":  "Parenting for Lifelong Health Programme for Young Children – Parent Handbook",
+        "publisher":  "WHO/UNICEF and partners",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://cdn.who.int/media/docs/default-source/documents/child-maltreatment/plh-for-young-children-parent-handbook-fifth-edition-english-webdefd40cdb72d428599babda85e66760e.pdf?download=true\u0026sfvrsn=d4d00246_2"
+    },
+    {
+        "id":  "SRC03",
+        "title":  "My Child: 0 to 2 Years",
+        "publisher":  "HSE Ireland",
+        "reviewStatus":  "Đã đối chiếu chuyên môn; 2 bản ghi được cập nhật trong v26.",
+        "url":  "https://assets.hse.ie/media/documents/HSE_My_Child_0_to_2_years_book_version_7_0_May_2024.pdf"
+    },
+    {
+        "id":  "SRC04",
+        "title":  "Healthy Eating Guidelines for New Zealand Babies and Toddlers (0–2 years old)",
+        "publisher":  "New Zealand Ministry of Health",
+        "reviewStatus":  "Đã đối chiếu chuyên môn; 8 bản ghi được cập nhật trong v26.",
+        "url":  "https://www.health.govt.nz/system/files/2021-09/healthy-eating-guidelines-for-new-zealand-babies-and-toddlers-nov21-v3.pdf"
+    },
+    {
+        "id":  "SRC05",
+        "title":  "Reducing Food-Related Choking for Babies and Young Children at Early Learning Services",
+        "publisher":  "New Zealand Ministry of Health",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.health.govt.nz/system/files/2020-12/reducing-food-related-choking-babies-young-children-early-learning-services-apr21.pdf"
+    },
+    {
+        "id":  "SRC06",
+        "title":  "My Child: 2 to 5 Years",
+        "publisher":  "Health Service Executive (HSE), Ireland",
+        "reviewStatus":  "Đã đối chiếu chuyên môn; 3 bản ghi được cập nhật trong v26.",
+        "url":  "https://www2.hse.ie/documents/317/HSE_My_Child_2_to_5_years_book_version_7_0_May_2024.pdf"
+    },
+    {
+        "id":  "SRC07",
+        "title":  "WHO Guideline for Complementary Feeding of Infants and Young Children 6–23 Months",
+        "publisher":  "World Health Organization",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.who.int/publications/i/item/9789240081864"
+    },
+    {
+        "id":  "SRC08",
+        "title":  "Care for Child Development – Participant Manual",
+        "publisher":  "World Health Organization and UNICEF",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.unicef.org/media/91176/file/3-CCD-Participant-Manual.pdf"
+    },
+    {
+        "id":  "SRC09",
+        "title":  "Parenting for Lifelong Health Programme for Young Children – Facilitator Manual, Fifth Edition",
+        "publisher":  "World Health Organization and programme partners",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://cdn.who.int/media/docs/default-source/documents/child-maltreatment/plh-for-young-children-facilitator-manual-fifth-edition-english-web.pdf"
+    },
+    {
+        "id":  "SRC10",
+        "title":  "Guidelines for Feeding Healthy Infants",
+        "publisher":  "USDA Food and Nutrition Service, WIC Works",
+        "reviewStatus":  "Đã đối chiếu chuyên môn; 3 bản ghi được cập nhật trong v26.",
+        "url":  "https://wicworks.fns.usda.gov/sites/default/files/media/document/Guidelines_for_Feeding_Healthy_Infants_Job_Aid.pdf"
+    },
+    {
+        "id":  "SRC11",
+        "title":  "Infant Feeding: Tips for Food Safety",
+        "publisher":  "USDA Food and Nutrition Service, WIC Works",
+        "reviewStatus":  "Đã đối chiếu chuyên môn; 2 bản ghi được cập nhật trong v26.",
+        "url":  "https://wicworks.fns.usda.gov/sites/default/files/media/document/Infant_Feeding_Food_Safety_Job_Aid.pdf"
+    },
+    {
+        "id":  "SRC12",
+        "title":  "Older Infants: Transitioning From Infant Foods to Fresh Fruits and Vegetables",
+        "publisher":  "USDA Food and Nutrition Service, WIC Works",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://wicworks.fns.usda.gov/sites/default/files/media/document/Things_to_Consider_Transitioning_Older_Infants_to_Fresh_Frt-Veg_508c.pdf"
+    },
+    {
+        "id":  "SRC13",
+        "title":  "Common Childhood Illnesses – A Guide for Parents and Carers of Children from 0–5 Years",
+        "publisher":  "NHS-affiliated primary care guide, United Kingdom",
+        "reviewStatus":  "Đã đối chiếu chuyên môn; 2 bản ghi được cập nhật trong v26.",
+        "url":  "https://westpoint-gp.nhs.uk/wp-content/uploads/2023/11/Guide-for-parents-and-carers-of-children-from-0-5-common-childhood-illnesses_v2-16.12.19_FINAL-1.pdf"
+    },
+    {
+        "id":  "SRC14",
+        "title":  "An Oral Health Guide to Promoting Lifelong Good Habits and Useful Resources",
+        "publisher":  "Barnsley Metropolitan Borough Council",
+        "reviewStatus":  "Đã đối chiếu chuyên môn; 3 bản ghi được cập nhật trong v26.",
+        "url":  "https://www.barnsley.gov.uk/media/zt0n1hhm/oral-health-guide-2024.pdf"
+    },
+    {
+        "id":  "SRC15",
+        "title":  "Walsall Best Start for Life – A Booklet for You and Your Baby",
+        "publisher":  "Walsall Healthcare NHS Trust and Walsall Family Hubs",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.walsallhealthcare.nhs.uk/wp-content/uploads/2025/03/Walsall-Best-Start-For-Life-English.pdf"
+    },
+    {
+        "id":  "SRC16",
+        "title":  "Improving Young Children’s Diets During the Complementary Feeding Period",
+        "publisher":  "UNICEF",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.unicef.org/media/93981/file/Complementary-Feeding-Guidance-2020.pdf"
+    },
+    {
+        "id":  "SRC17",
+        "title":  "Improving Early Childhood Development – WHO Guideline, Executive Summary",
+        "publisher":  "World Health Organization",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://cdn.who.int/media/docs/default-source/mca-documents/child/early-child-development/executive-summary-guideline-improving-early-childhood-development.pdf"
+    },
+    {
+        "id":  "SRC18",
+        "title":  "Eating Statements for New Zealand Babies and Toddlers (0–2 Years Old)",
+        "publisher":  "New Zealand Ministry of Health",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.health.govt.nz/system/files/2021-09/guideline-eating-statements-for-new-nealand-babies-and-toddlers_-30sep21.pdf"
+    },
+    {
+        "id":  "SRC19",
+        "title":  "Infant Feeding Guidelines: Summary",
+        "publisher":  "National Health and Medical Research Council, Australian Government",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.eatforhealth.gov.au/sites/default/files/files/the_guidelines/n56b_infant_feeding_summary_130808.pdf"
+    },
+    {
+        "id":  "SRC20",
+        "title":  "Giving Your Baby the Best Start",
+        "publisher":  "National Health and Medical Research Council, Australian Government",
+        "reviewStatus":  "Đã đối chiếu chuyên môn; 1 bản ghi được cập nhật trong v26.",
+        "url":  "https://www.eatforhealth.gov.au/sites/default/files/2022-09/n55e_infant_brochure_0.pdf"
+    },
+    {
+        "id":  "SRC21",
+        "title":  "Care for Child Development – Counselling Cards, Long Form",
+        "publisher":  "UNICEF / WHO programme materials",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.unicef.org/lac/en/media/8571/file/Counseling%20Cards%20-%20Long%20version.pdf"
+    },
+    {
+        "id":  "SRC22",
+        "title":  "Care for Child Development – Counselling Cards, Short Form",
+        "publisher":  "WHO / PAHO / UNICEF",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.unicef.org/lac/en/media/8566/file/Counseling%20Cards%20-%20Short%20version.pdf"
+    },
+    {
+        "id":  "SRC23",
+        "title":  "A User Guide to Complementary Feeding and Sample Recipes for Children Aged 6–24 Months",
+        "publisher":  "UNICEF Myanmar",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.unicef.org/myanmar/media/7741/file/A%20user%20guide%20to%20complementary%20feeding%20%26%20sample%20recipes%20for%20children%20aged%206-24%20months.pdf"
+    },
+    {
+        "id":  "SRC24",
+        "title":  "Complementary Feeding for Children Aged 6–23 Months",
+        "publisher":  "Food and Agriculture Organization of the United Nations and Cambodian partner ministries",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.fao.org/4/am866e/am866e00.pdf"
+    },
+    {
+        "id":  "SRC25",
+        "title":  "Fair Parent, Fair Child – Handbook on Positive Parenting",
+        "publisher":  "UNICEF North Macedonia and Center for Integral Rehabilitation VIGOTSKI",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.unicef.org/northmacedonia/sites/unicef.org.northmacedonia/files/2019-04/Fair%20Parent_Fair%20Child%20_ENG.pdf"
+    },
+    {
+        "id":  "SRC26",
+        "title":  "Positive Parenting – Tips for Parents of Children 0–8 Years",
+        "publisher":  "UNICEF Oman",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.unicef.org/oman/media/2411/file/Positive%20Parenting.pdf.pdf"
+    },
+    {
+        "id":  "SRC27",
+        "title":  "Better Parenting Plus – Community Discussion Guide",
+        "publisher":  "REPSSI / Catholic Relief Services / programme partners",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.unicef.org/flnhub/media/1656/file/parenting-plus.pdf.pdf"
+    },
+    {
+        "id":  "SRC28",
+        "title":  "Birth to Five – Your Complete Guide to Parenthood and the First Five Years",
+        "publisher":  "UK Department of Health",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.burnettedgarmedicalcentre.nhs.uk/wp-content/uploads/sites/1506/2024/01/Birth-2-Five-updated-June-2010.pdf"
+    },
+    {
+        "id":  "SRC29",
+        "title":  "Essential Guide to Feeding and Caring for Your Baby",
+        "publisher":  "Real Baby Milk / NHS maternity services",
+        "reviewStatus":  "Đã đối chiếu chuyên môn; 1 bản ghi được cập nhật trong v26.",
+        "url":  "https://nhssomerset.nhs.uk/wp-content/uploads/sites/2/Somerset-essential-guide-to-caring-for-your-baby-19-20-1.pdf"
+    },
+    {
+        "id":  "SRC30",
+        "title":  "What to Expect in the Early Years Foundation Stage – A Guide for Parents",
+        "publisher":  "East London Research School / Department for Education-funded project",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.cumbria.gov.uk/elibrary/Content/Internet/537/1459/7037/38508/38524/4516117617.pdf"
+    },
+    {
+        "id":  "SRC31",
+        "title":  "What to Expect, When? – Guidance to Your Child’s Learning and Development",
+        "publisher":  "4Children / Early Years Foundation Stage parent guide",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.towerhamlets.gov.uk/Documents/Children-and-families-services/Early-Years/4Children_Parents_Guide_what_to_expect_when..pdf"
+    },
+    {
+        "id":  "SRC32",
+        "title":  "Five to Thrive – A Guide for Parents and Carers",
+        "publisher":  "Knowledge Change Action / Coventry City Council",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.coventry.gov.uk/downloads/file/41319/parent-guide"
+    },
+    {
+        "id":  "SRC33",
+        "title":  "Recommendations for Care for Child Development – Poster",
+        "publisher":  "World Health Organization / UNICEF",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://iris.who.int/bitstream/handle/10665/75149/9789241548403_eng_Poster.pdf"
+    },
+    {
+        "id":  "SRC34",
+        "title":  "Promoting Improved Complementary Feeding – A Manual for Community Nutrition Promoters",
+        "publisher":  "Food and Agriculture Organization of the United Nations",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.fao.org/4/am867e/am867e.pdf"
+    },
+    {
+        "id":  "SRC35",
+        "title":  "Improved Complementary Foods Recipe Booklet – Family Foods for Breastfed Children in Zambia",
+        "publisher":  "Zambia National Food and Nutrition Commission / FAO",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.fao.org/fileadmin/user_upload/nutrition/docs/education/resources/by_country/New_Web_Comp_Feeding.pdf"
+    },
+    {
+        "id":  "SRC36",
+        "title":  "Recipe Booklet for Complementary Feeding of Children Aged 6 to 23 Months",
+        "publisher":  "FAO / Government of Bangladesh / USAID",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.fao.org/fileadmin/user_upload/nutrition/docs/education/resources/by_country/Bangladesh/EN-Recipe_booklet_complementary_feeding_English.pdf"
+    },
+    {
+        "id":  "SRC37",
+        "title":  "Improving Early Childhood Development – WHO Guideline",
+        "publisher":  "World Health Organization",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://iris.who.int/bitstream/handle/10665/331306/9789240002098-eng.pdf"
+    },
+    {
+        "id":  "SRC38",
+        "title":  "Infant and Young Child Feeding – Model Chapter for Medical Students and Allied Health Professionals",
+        "publisher":  "World Health Organization",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://iris.who.int/bitstream/handle/10665/44117/9789241597494_eng.pdf"
+    },
+    {
+        "id":  "SRC39",
+        "title":  "Improved Feeding Practices and Recipes for Afghan Children and Mothers",
+        "publisher":  "Food and Agriculture Organization of the United Nations",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.fao.org/ag/humannutrition/15403-0397cd6b1f6ca0073374b4c8c9f642644.pdf"
+    },
+    {
+        "id":  "SRC40",
+        "title":  "Infant Feeding Guidelines – Information for Health Workers",
+        "publisher":  "National Health and Medical Research Council, Australian Government",
+        "reviewStatus":  "Đã đối chiếu chuyên môn; 1 bản ghi được cập nhật trong v26.",
+        "url":  "https://www.eatforhealth.gov.au/sites/default/files/files/the_guidelines/n56_infant_feeding_guidelines.pdf"
+    },
+    {
+        "id":  "SRC41",
+        "title":  "Food and Nutrition Guidelines for Healthy Children and Young People Aged 2–18 Years",
+        "publisher":  "New Zealand Ministry of Health",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.health.govt.nz/system/files/2015-04/food-nutrition-guidelines-healthy-children-young-people-background-paper-feb15-v2.pdf"
+    },
+    {
+        "id":  "SRC42",
+        "title":  "Community Infant and Young Child Feeding Counselling Package",
+        "publisher":  "UNICEF / JSI Research \u0026 Training Institute",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.unicef.org/documents/community-iycf-counselling-package"
+    },
+    {
+        "id":  "SRC43",
+        "title":  "A Parent’s Guide: Common Childhood Illness and Well-being – Children Aged 0–4",
+        "publisher":  "Torbay and South Devon NHS Foundation Trust",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.torbayandsouthdevon.nhs.uk/uploads/common-childhood-illnesses-0-4.pdf"
+    },
+    {
+        "id":  "SRC44",
+        "title":  "When Should I Worry? – Your Guide to Coughs, Colds, Earache and Sore Throats",
+        "publisher":  "Cardiff University primary care research team",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.cranleighmedicalpractice.nhs.uk/wp-content/uploads/2026/02/When-Should-I-Worry-Booklet.pdf"
+    },
+    {
+        "id":  "SRC45",
+        "title":  "British Red Cross – Learn First Aid for Babies and Children",
+        "publisher":  "British Red Cross",
+        "reviewStatus":  "Đã đối chiếu chuyên môn; 3 bản ghi được cập nhật trong v26.",
+        "url":  "https://www.redcross.org.uk/first-aid/learn-first-aid-for-babies-and-children"
+    },
+    {
+        "id":  "SRC46",
+        "title":  "Together We Cook – Recipes of Lambeth and Southwark",
+        "publisher":  "Evelina London Community Children’s Nutrition and Dietetics Service",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.evelinalondon.nhs.uk/resources/patient-information/Together-we-cook.pdf"
+    },
+    {
+        "id":  "SRC47",
+        "title":  "Recipe Book for Toddlers Who Need to Make the Most of Every Mouthful",
+        "publisher":  "University Hospital Southampton / Southampton Hospital Charity",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.uhs.nhs.uk/Media/UHS-website-2019/Docs/Services/Child-health/DietaryAdvice/Recipe-book-For-toddlers-who-need-to-make-the-most-of-every-mouthful.pdf"
+    },
+    {
+        "id":  "SRC48",
+        "title":  "Eating Well: Packed Lunches for 1 to Under-5 Year Olds",
+        "publisher":  "First Steps Nutrition Trust",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.justonenorfolk.nhs.uk/media/n43logpn/fsn-eating-well_packed-lunch_mar-2024_digital-compressed.pdf"
+    },
+    {
+        "id":  "SRC49",
+        "title":  "How Your Baby Develops from 2 to 3 Months – Easy English",
+        "publisher":  "Raising Children Network, supported by the Australian Government",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://raisingchildren.net.au/__data/assets/pdf_file/0021/124734/AI1684_PRC_Baby-development-2-3-months_web-accessible.pdf"
+    },
+    {
+        "id":  "SRC50",
+        "title":  "How Your Baby Develops from 6 to 7 Months – Easy English",
+        "publisher":  "Raising Children Network, supported by the Australian Government",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://raisingchildren.net.au/__data/assets/pdf_file/0020/133733/AI1956_PRC_Baby-development-6-7-months_final_web.pdf"
+    },
+    {
+        "id":  "SRC51",
+        "title":  "How Your Child Develops from 12 to 15 Months – Easy English",
+        "publisher":  "Raising Children Network, supported by the Australian Government",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://raisingchildren.net.au/__data/assets/pdf_file/0021/133941/AI1956_PRC_Toddler-development-12-15-months_final_web.pdf"
+    },
+    {
+        "id":  "SRC52",
+        "title":  "NHS Recipes and Meal Ideas for Babies and Toddlers",
+        "publisher":  "National Health Service, Best Start in Life",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.nhs.uk/best-start-in-life/baby/recipes-and-meal-ideas/"
+    },
+    {
+        "id":  "SRC53",
+        "title":  "Getting to Know Your Baby – Positive Touch and Interaction",
+        "publisher":  "Gloucestershire Health and Care NHS Foundation Trust",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.ghc.nhs.uk/wp-content/uploads/2025/12/Health-Visiting-Handy-Guide-getting-to-know-your-baby-v01r01-PR.pdf"
+    },
+    {
+        "id":  "SRC54",
+        "title":  "Baby Massage",
+        "publisher":  "Derbyshire Family Health Service, NHS",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://derbyshirefamilyhealthservice.nhs.uk/our-services/0-5-years/your-babys-first-year/baby-massage"
+    },
+    {
+        "id":  "SRC55",
+        "title":  "Infant and Young Child Feeding – Counselling Cards for Community Workers",
+        "publisher":  "UNICEF / JSI",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.unicef.org/media/108391/file/Counselling%20Cards.pdf"
+    },
+    {
+        "id":  "SRC56",
+        "title":  "Care for Child Development – Facilitator Notes",
+        "publisher":  "World Health Organization / UNICEF",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.unicef.org/media/91186/file/5-CCD-Facilitator-Notes.pdf"
+    },
+    {
+        "id":  "SRC57",
+        "title":  "The Art of Parenting – Training Guide",
+        "publisher":  "National Parenting Taskforce of Belize / UNICEF",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.unicef.org/lac/media/27656/file/The%20Art%20of%20Parenting.pdf"
+    },
+    {
+        "id":  "SRC58",
+        "title":  "Infant and Young Child Feeding Counselling: An Integrated Course – Participant’s Manual, 2nd ed.",
+        "publisher":  "World Health Organization / UNICEF",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.who.int/publications/i/item/9789240032408"
+    },
+    {
+        "id":  "SRC59",
+        "title":  "Care for Child Development – Guide for Clinical Practice",
+        "publisher":  "World Health Organization / UNICEF",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://iris.who.int/bitstream/handle/10665/75149/9789241548403_eng_Clinical_Practice.pdf?sequence=16"
+    },
+    {
+        "id":  "SRC60",
+        "title":  "Child Development 0–2 Years: Downloadable Posters and Handouts",
+        "publisher":  "Raising Children Network, supported by the Australian Government",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://raisingchildren.net.au/for-professionals/child-development-downloads"
+    },
+    {
+        "id":  "SRC61",
+        "title":  "Eating Well: The First Year",
+        "publisher":  "First Steps Nutrition Trust",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.firststepsnutrition.org/eating-well-in-the-first-year"
+    },
+    {
+        "id":  "SRC62",
+        "title":  "Good Food Choices and Portion Sizes for 1–4 Year Olds",
+        "publisher":  "First Steps Nutrition Trust",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.firststepsnutrition.org/eating-well-early-years"
+    },
+    {
+        "id":  "SRC63",
+        "title":  "Eating Well: Vegan Infants and Under-5s",
+        "publisher":  "First Steps Nutrition Trust",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.firststepsnutrition.org/vegan-infants"
+    },
+    {
+        "id":  "SRC64",
+        "title":  "Healthy Start and Best Start Foods – A Practical Guide",
+        "publisher":  "First Steps Nutrition Trust",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.firststepsnutrition.org/hsbsfoods3"
+    },
+    {
+        "id":  "SRC65",
+        "title":  "Eating Well: 6 Months to 2 Years for South Asian Children",
+        "publisher":  "First Steps Nutrition Trust / Nurture Early for Optimal Nutrition",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.firststepsnutrition.org/south-asian-children"
+    },
+    {
+        "id":  "SRC66",
+        "title":  "Infant and Young Child Feeding Counselling: An Integrated Course – Participant’s Manual",
+        "publisher":  "World Health Organization / UNICEF",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.who.int/publications/i/item/infant-young-child-feeding-counselling-an-integrated-course"
+    },
+    {
+        "id":  "SRC67",
+        "title":  "Infant Nutrition and Feeding Guide – USDA WIC",
+        "publisher":  "United States Department of Agriculture, Food and Nutrition Service",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://wicworks.fns.usda.gov/resources/infant-nutrition-and-feeding-guide"
+    },
+    {
+        "id":  "SRC68",
+        "title":  "Recipe Book for Babies Who Need to Make the Most of Every Mouthful",
+        "publisher":  "University Hospital Southampton / Southampton Children’s Hospital",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.uhs.nhs.uk/for-visitors/southampton-childrens-hospital/childrens-services/childrens-cardiac/recipe-book-for-babies-with-congenital-heart-disease"
+    },
+    {
+        "id":  "SRC69",
+        "title":  "Eating Well Resources – First Steps Nutrition Trust",
+        "publisher":  "First Steps Nutrition Trust",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.firststepsnutrition.org/eating-well-resources"
+    },
+    {
+        "id":  "SRC70",
+        "title":  "Practical Preparing for Parenthood",
+        "publisher":  "Twins Trust / Shrewsbury and Telford Hospital NHS Trust archive",
+        "reviewStatus":  "Đã quét theo quy tắc rủi ro; không phát hiện điểm cần sửa trong vòng đối chiếu v26.",
+        "url":  "https://www.sath.nhs.uk/wp-content/uploads/2020/10/Practical-Preparing-for-Parenthood-1.pdf"
+    }
+]

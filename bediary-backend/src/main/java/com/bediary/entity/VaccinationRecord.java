@@ -11,6 +11,19 @@ import java.util.UUID;
 @Table(name = "vaccination_records")
 public class VaccinationRecord {
 
+    public enum Source {
+        SYSTEM,
+        CUSTOM
+    }
+
+    public enum Status {
+        SCHEDULED,
+        COMPLETED,
+        POSTPONED,
+        SKIPPED,
+        CANCELLED
+    }
+
     @Id
     @UuidGenerator
     @Column(nullable = false, updatable = false)
@@ -31,6 +44,17 @@ public class VaccinationRecord {
 
     @Column(name = "scheduled_date", nullable = false)
     private LocalDate scheduledDate;
+
+    @Column(name = "original_scheduled_date")
+    private LocalDate originalScheduledDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", length = 20)
+    private Source source = Source.SYSTEM;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20)
+    private Status status = Status.SCHEDULED;
 
     @Column(name = "category", length = 20)
     private String category = "OPTIONAL";
@@ -59,6 +83,9 @@ public class VaccinationRecord {
     public String getVaccineName() { return vaccineName; }
     public int getDoseNumber() { return doseNumber; }
     public LocalDate getScheduledDate() { return scheduledDate; }
+    public LocalDate getOriginalScheduledDate() { return originalScheduledDate; }
+    public Source getSource() { return source; }
+    public Status getStatus() { return status; }
     public String getCategory() { return category; }
     public String getAgeLabel() { return ageLabel; }
     public Instant getCompletedAt() { return completedAt; }
@@ -72,6 +99,9 @@ public class VaccinationRecord {
     public void setVaccineName(String v) { this.vaccineName = v; }
     public void setDoseNumber(int v) { this.doseNumber = v; }
     public void setScheduledDate(LocalDate d) { this.scheduledDate = d; }
+    public void setOriginalScheduledDate(LocalDate d) { this.originalScheduledDate = d; }
+    public void setSource(Source source) { this.source = source; }
+    public void setStatus(Status status) { this.status = status; }
     public void setCategory(String v) { this.category = v; }
     public void setAgeLabel(String v) { this.ageLabel = v; }
     public void setCompletedAt(Instant t) { this.completedAt = t; }
@@ -87,6 +117,9 @@ public class VaccinationRecord {
         public Builder vaccineName(String n) { v.vaccineName = n; return this; }
         public Builder doseNumber(int d) { v.doseNumber = d; return this; }
         public Builder scheduledDate(LocalDate d) { v.scheduledDate = d; return this; }
+        public Builder originalScheduledDate(LocalDate d) { v.originalScheduledDate = d; return this; }
+        public Builder source(Source source) { v.source = source; return this; }
+        public Builder status(Status status) { v.status = status; return this; }
         public Builder category(String c) { v.category = c; return this; }
         public Builder ageLabel(String label) { v.ageLabel = label; return this; }
         public Builder notes(String n) { v.notes = n; return this; }

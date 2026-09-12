@@ -2,11 +2,9 @@ package com.bediary.service;
 
 import com.bediary.entity.Family;
 import com.bediary.entity.GrowthRecord;
-import com.bediary.entity.HealthRecord;
 import com.bediary.entity.TrackingLog;
 import com.bediary.entity.VaccinationRecord;
 import com.bediary.repository.GrowthRecordRepository;
-import com.bediary.repository.HealthRecordRepository;
 import com.bediary.repository.TrackingLogRepository;
 import com.bediary.repository.VaccinationRecordRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +16,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,17 +30,107 @@ public class AiContextBuilderService {
 
     private final TrackingLogRepository trackingLogRepository;
     private final GrowthRecordRepository growthRecordRepository;
-    private final HealthRecordRepository healthRecordRepository;
     private final VaccinationRecordRepository vaccinationRecordRepository;
+    private final BabyAnalyticsService babyAnalyticsService;
+
+    public String buildForQuestion(Family family, String question) {
+        String q = java.text.Normalizer.normalize(question.toLowerCase(java.util.Locale.ROOT), java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").replace('đ', 'd');
+        boolean sleep = hasTopic(q, "ngu|giac");
+        boolean feed = hasTopic(q, "bu|an|sua|ml");
+        boolean diaper = hasTopic(q, "tieu|ta|phan|ngoai");
+        boolean growth = hasTopic(q, "can nang|chieu cao|tang truong");
+        boolean vaccine = hasTopic(q, "tiem|vaccine|vac xin");
+        boolean health = hasTopic(q, "ho|sot|non|kho tho|tieu chay|bu kem|li bi|nghet mui");
+        boolean all = !sleep && !feed && !diaper && !growth && !vaccine;
+        LocalDate date = LocalDate.now(APP_ZONE);
+        if (q.contains("hom qua") && !q.contains("hom nay")) date = date.minusDays(1);
+        if (q.contains("hom kia")) date = date.minusDays(2);
+        java.util.regex.Matcher explicit = java.util.regex.Pattern.compile("\\b\\d{4}-\\d{2}-\\d{2}\\b").matcher(q);
+        if (explicit.find()) {
+            try { date = LocalDate.parse(explicit.group()); }
+            catch (java.time.format.DateTimeParseException e) { return "Ngày yêu cầu không hợp lệ; cần xác nhận lại ngày, không thay bằng hôm nay."; }
+        }
+        boolean trend = hasTopic(q, "7 ngay|tuan nay|tuan truoc|gan day|dao nay|xu huong|so sanh|giam|tang");
+        int daysBack = trend ? 6 : 0;
+        if (q.contains("tuan nay")) daysBack = date.getDayOfWeek().getValue() - 1;
+        if (q.contains("tuan truoc")) date = date.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)).minusDays(1);
+        StringBuilder out = new StringBuilder("Dữ liệu app theo câu hỏi (múi giờ Asia/Ho_Chi_Minh):\n");
+        out.append("Chỉ phản ánh hoạt động đã nhập, không chứng minh cả ngày đầy đủ. Giá trị nhập nhanh có thể là mặc định.\n");
+        for (int offset = daysBack; offset >= 0; offset--) {
+            LocalDate day = date.minusDays(offset);
+            List<TrackingLog> logs = trackingLogRepository.findDailyLogs(family.getId(), day.atStartOfDay(APP_ZONE).toInstant(), day.plusDays(1).atStartOfDay(APP_ZONE).toInstant());
+            out.append("Ngày ").append(day).append(":\n");
+            List<TrackingLog> selected = logs.stream().filter(item -> switch (item.getActivityType()) {
+                case "FEED" -> all || feed || health;
+                case "SLEEP" -> all || sleep || health;
+                case "DIAPER", "PEE", "POOP" -> all || diaper || health;
+                default -> all || health;
+            }).toList();
+            if (selected.isEmpty()) { out.append("Chưa ghi nhận hoạt động thuộc chủ đề này.\n"); continue; }
+            List<TrackingLog> feeds = selected.stream().filter(item -> "FEED".equals(item.getActivityType())).toList();
+            if (!feeds.isEmpty()) {
+                long known = feeds.stream().filter(item -> milkAmount(safeMeta(item)) != null).count();
+                double ml = feeds.stream().mapToDouble(item -> number(milkAmount(safeMeta(item)), 0)).sum();
+                out.append("Bú/ăn: ").append(feeds.size()).append(" cữ; tổng lượng đã nhập ").append(Math.round(ml))
+                        .append(" ml; ").append(feeds.size() - known).append(" cữ chưa có lượng ml.\n");
+            }
+            List<TrackingLog> sleeps = selected.stream().filter(item -> "SLEEP".equals(item.getActivityType())).toList();
+            if (!sleeps.isEmpty()) out.append("Ngủ: ").append(sleeps.size()).append(" lần; tổng phút đã nhập ")
+                    .append(sleeps.stream().mapToLong(item -> sleepDuration(item, safeMeta(item))).sum()).append(".\n");
+            long pee = selected.stream().filter(item -> "PEE".equals(item.getActivityType()) || ("DIAPER".equals(item.getActivityType()) && hasTopic(text(firstPresent(safeMeta(item), "diaper_type", "diaperType")).toLowerCase(), "wet|pee|both"))).count();
+            long poop = selected.stream().filter(item -> "POOP".equals(item.getActivityType()) || ("DIAPER".equals(item.getActivityType()) && hasTopic(text(firstPresent(safeMeta(item), "diaper_type", "diaperType")).toLowerCase(), "poop|stool|both"))).count();
+            if (all || diaper || health) out.append("Đi tiểu ").append(pee).append("; đi tiêu ").append(poop).append(" lần.\n");
+            selected.stream().sorted(java.util.Comparator.comparing(TrackingLog::getStartTime).reversed()).limit(trend ? 4 : 12)
+                    .forEach(item -> out.append(TIME_FORMAT.format(item.getStartTime())).append(" ").append(activityLabel(item.getActivityType())).append(detail(item)).append("\n"));
+        }
+        if (growth) appendGrowth(out, family);
+        if (vaccine) appendVaccination(out, family);
+        if (all && !health && date.equals(LocalDate.now(APP_ZONE))) {
+            out.append(babyAnalyticsService.buildAnalyticsContext(family));
+        }
+        out.append("Chỉ so sánh những ngày đã có số liệu; không xem ngày trống là 0 thực tế. Khoảng thời gian khác chưa có trong context phải nói rõ hoặc hỏi lại.\n");
+        return out.toString();
+    }
+
+    private boolean hasTopic(String text, String expression) {
+        return java.util.regex.Pattern.compile("(?<![a-z0-9])(?:" + expression + ")(?![a-z0-9])").matcher(text).find();
+    }
+
+    private Object milkAmount(Map<String, Object> meta) {
+        Object explicitMl = firstPresent(meta, "milkMl", "amountMl", "ml");
+        if (explicitMl != null) return explicitMl;
+        String unit = text(meta.get("unit"));
+        return unit.isBlank() || "ml".equalsIgnoreCase(unit) ? meta.get("value") : null;
+    }
 
     public String build(Family family) {
         StringBuilder builder = new StringBuilder();
         builder.append("Dữ liệu có cấu trúc từ app Bediary, ưu tiên dùng khi trả lời:\n");
         appendAgeReference(builder, family);
+        builder.append(babyAnalyticsService.buildAnalyticsContext(family));
         appendTracking(builder, family);
         appendRecentTracking(builder, family);
         appendGrowth(builder, family);
-        appendHealth(builder, family);
+        appendVaccination(builder, family);
+        return builder.toString();
+    }
+
+    public String buildTrackingContext(Family family) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Route Tracking AI - dữ liệu nhật ký thực tế từ database:\n");
+        appendAgeReference(builder, family);
+        appendTracking(builder, family);
+        appendRecentTracking(builder, family);
+        return builder.toString();
+    }
+
+    public String buildAnalyticsContext(Family family) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Route Insight AI - dữ liệu đã qua Baby Analytics/Rule Engine:\n");
+        appendAgeReference(builder, family);
+        builder.append(babyAnalyticsService.buildAnalyticsContext(family));
+        appendGrowth(builder, family);
         appendVaccination(builder, family);
         return builder.toString();
     }
@@ -234,42 +321,18 @@ public class AiContextBuilderService {
         if (zScore != null) builder.append(", Z ").append(roundOne(zScore));
     }
 
-    private void appendHealth(StringBuilder builder, Family family) {
-        List<HealthRecord> records = healthRecordRepository.findByFamilyIdOrderByEventDateDescCreatedAtDesc(family.getId());
-        List<HealthRecord> activeMeds = records.stream()
-                .filter(r -> r.getRecordType() == HealthRecord.Type.MEDICATION && r.getMedicationStatus() == HealthRecord.MedicationStatus.ACTIVE)
-                .limit(5)
-                .toList();
-        List<HealthRecord> alerts = records.stream()
-                .filter(r -> r.getRecordType() == HealthRecord.Type.ALLERGY || r.getRecordType() == HealthRecord.Type.CONDITION)
-                .limit(5)
-                .toList();
-        LocalDate today = LocalDate.now(APP_ZONE);
-        List<HealthRecord> upcoming = records.stream()
-                .filter(r -> r.getNextFollowUpDate() != null && !r.getNextFollowUpDate().isBefore(today))
-                .sorted(Comparator.comparing(HealthRecord::getNextFollowUpDate))
-                .limit(3)
-                .toList();
-
-        builder.append("- Sổ sức khỏe: thuốc đang dùng ");
-        builder.append(activeMeds.isEmpty() ? "không có dữ liệu" : joinHealth(activeMeds));
-        builder.append("; dị ứng/bệnh lý lưu ý ");
-        builder.append(alerts.isEmpty() ? "không có dữ liệu" : joinHealth(alerts));
-        builder.append("; lịch khám/tái khám sắp tới ");
-        builder.append(upcoming.isEmpty() ? "không có dữ liệu" : joinFollowUps(upcoming));
-        builder.append(".\n");
-    }
-
     private void appendVaccination(StringBuilder builder, Family family) {
         LocalDate today = LocalDate.now(APP_ZONE);
         List<VaccinationRecord> upcoming = vaccinationRecordRepository
                 .findByFamilyIdAndCompletedAtIsNullAndScheduledDateBetween(family.getId(), today, today.plusDays(90))
                 .stream()
+                .filter(this::isScheduledVaccination)
                 .limit(5)
                 .toList();
         List<VaccinationRecord> overdue = vaccinationRecordRepository
                 .findByFamilyIdAndCompletedAtIsNullAndScheduledDateLessThanEqual(family.getId(), today.minusDays(1))
                 .stream()
+                .filter(this::isScheduledVaccination)
                 .limit(5)
                 .toList();
 
@@ -350,25 +413,15 @@ public class AiContextBuilderService {
         };
     }
 
-    private String joinHealth(List<HealthRecord> records) {
-        return records.stream()
-                .map(r -> r.getTitle() + (r.getMedicationDosage() != null ? " - " + r.getMedicationDosage() : ""))
-                .reduce((a, b) -> a + "; " + b)
-                .orElse("không có dữ liệu");
-    }
-
-    private String joinFollowUps(List<HealthRecord> records) {
-        return records.stream()
-                .map(r -> r.getTitle() + " ngày " + r.getNextFollowUpDate())
-                .reduce((a, b) -> a + "; " + b)
-                .orElse("không có dữ liệu");
-    }
-
     private String joinVaccines(List<VaccinationRecord> records) {
         return records.stream()
                 .map(r -> r.getVaccineName() + " mũi " + r.getDoseNumber() + " ngày " + r.getScheduledDate())
                 .reduce((a, b) -> a + "; " + b)
                 .orElse("không có dữ liệu");
+    }
+
+    private boolean isScheduledVaccination(VaccinationRecord record) {
+        return record.getStatus() == null || record.getStatus() == VaccinationRecord.Status.SCHEDULED;
     }
 
     private Map<String, Object> safeMeta(TrackingLog log) {

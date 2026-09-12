@@ -56,7 +56,8 @@ Lượng sữa cần thiết: Khoảng 500 - 800ml/ngày tùy theo lượng th�
 3. Sinh hoạt và Giấc ngủ
 Giấc ngủ: Tổng thời gian ngủ khoảng 12-15 giờ/ngày, bao gồm 1 giấc đêm dài (10-12 giờ) và 2 giấc ngủ ngày (sáng và chiều).
 
-Mọc răng: Trẻ thường bắt đầu mọc răng từ 6-8 tháng. Có thể kèm theo sốt nhẹ, chảy dãi nhiều, thích cắn đồ vật. Giảm đau cho bé bằng gặm nướu lạnh hoặc massage nướu.
+Mọc răng: Trẻ có thể chảy dãi nhiều, thích cắn đồ vật và khó chịu ở lợi. Không quy sốt thực sự hoặc tiêu chảy cho mọc răng; cần xem xét nguyên nhân khác khi trẻ có vẻ ốm. Có thể làm dịu lợi bằng dụng cụ gặm nướu phù hợp được làm mát.
+Đối chiếu 2026-09-08: https://www.healthychildren.org/English/health-issues/conditions/fever/Pages/Fever-and-Your-Baby.aspx (thống nhất với KB0631).
 
 Vận động: Khuyến khích trẻ tập lật, trườn, bò, ngồi và vịn đứng. Đảm bảo không gian sàn nhà sạch sẽ và an toàn.
 

@@ -60,6 +60,16 @@ public class FamilyService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userId));
 
         String inviteCode = generateInviteCode();
+        Family source = null;
+        FamilyMember.Role creatorRole = FamilyMember.Role.PARENT;
+        if (request.existingFamilyId() != null) {
+            FamilyMember manager = familyMemberRepository.findByFamilyIdAndUserId(request.existingFamilyId(), userId)
+                    .orElseThrow(() -> new AccessDeniedException("Not a family member"));
+            if (!isParentOrAdmin(manager.getRole())) throw new AccessDeniedException("Only parents can add a baby");
+            source = manager.getFamily();
+            creatorRole = manager.getRole();
+            if (source.getHouseholdId() == null) source.setHouseholdId(source.getId());
+        }
 
         Family family = Family.builder()
                 .babyName(request.babyName())
@@ -68,6 +78,7 @@ public class FamilyService {
                 .inviteCode(inviteCode)
                 .build();
 
+        family.setHouseholdId(source == null ? UUID.randomUUID() : source.getHouseholdId());
         family = familyRepository.save(family);
 
         // Creator is the parent of this baby journal.
@@ -75,44 +86,53 @@ public class FamilyService {
         FamilyMember member = FamilyMember.builder()
                 .family(family)
                 .user(user)
-                .role(FamilyMember.Role.PARENT)
+                .role(creatorRole)
                 .build();
 
         familyMemberRepository.save(member);
+        if (source != null) {
+            for (FamilyMember relative : familyMemberRepository.findByFamilyId(source.getId())) {
+                if (!relative.getUser().getId().equals(userId)) {
+                    familyMemberRepository.save(FamilyMember.builder().family(family).user(relative.getUser())
+                            .role(relative.getRole()).build());
+                }
+            }
+        }
 
         // FIX: Generate a new JWT that now contains the correct familyId.
         // The old token (from register) had familyId=null, causing 403 on tracking.
         String newToken = jwtUtil.generateToken(user.getId(), family.getId(), user.getEmail());
 
-        return new FamilyResponse(family.getId(), family.getBabyName(), family.getInviteCode(), newToken);
+        return new FamilyResponse(family.getId(), family.getBabyName(), family.getInviteCode(), newToken, member.getRole().name());
     }
 
     @Transactional
     public FamilyResponse joinFamily(String inviteCode, UUID userId) {
-        Family family = familyRepository.findByInviteCode(inviteCode)
+        Family family = familyRepository.findByInviteCode(inviteCode.trim())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid invite code: " + inviteCode));
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userId));
 
-        // Prevent duplicate membership
-        if (familyMemberRepository.existsByFamilyIdAndUserId(family.getId(), userId)) {
-            throw new IllegalStateException("User is already a member of this family");
-        }
-
-        // Joiners via invite code become VIEWERs
-        FamilyMember member = FamilyMember.builder()
+        // Rejoining restores the session without duplicating membership or changing its role.
+        FamilyMember member = familyMemberRepository.findByFamilyIdAndUserId(family.getId(), userId)
+                .orElseGet(() -> familyMemberRepository.save(FamilyMember.builder()
                 .family(family)
                 .user(user)
                 .role(FamilyMember.Role.VIEWER)
-                .build();
-
-        familyMemberRepository.save(member);
+                .build()));
+        for (Family sibling : householdBabies(family)) {
+            if (!sibling.getId().equals(family.getId())
+                    && !familyMemberRepository.existsByFamilyIdAndUserId(sibling.getId(), userId)) {
+                familyMemberRepository.save(FamilyMember.builder().family(sibling).user(user)
+                        .role(member.getRole()).build());
+            }
+        }
 
         // FIX: Generate new JWT with familyId so VIEWER can access the feed properly.
         String newToken = jwtUtil.generateToken(user.getId(), family.getId(), user.getEmail());
 
-        return new FamilyResponse(family.getId(), family.getBabyName(), null, newToken);
+        return new FamilyResponse(family.getId(), family.getBabyName(), null, newToken, member.getRole().name());
     }
 
     @Transactional(readOnly = true)
@@ -142,7 +162,7 @@ public class FamilyService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userId));
         Family family = member.getFamily();
         String newToken = jwtUtil.generateToken(user.getId(), family.getId(), user.getEmail());
-        return new FamilyResponse(family.getId(), family.getBabyName(), family.getInviteCode(), newToken);
+        return new FamilyResponse(family.getId(), family.getBabyName(), family.getInviteCode(), newToken, member.getRole().name());
     }
 
     @Transactional
@@ -224,5 +244,58 @@ public class FamilyService {
     /** PARENT manages the family; ADMIN is reserved for system operations. */
     private boolean isParentOrAdmin(FamilyMember.Role role) {
         return role == FamilyMember.Role.PARENT || role == FamilyMember.Role.ADMIN;
+    }
+
+    public List<Family> householdBabies(Family family) {
+        return family.getHouseholdId() == null ? List.of(family)
+                : familyRepository.findByHouseholdId(family.getHouseholdId());
+    }
+
+    @Transactional
+    public void linkHouseholds(UUID currentId, UUID otherId, UUID actorId) {
+        Family current = familyRepository.findById(currentId).orElseThrow();
+        Family other = familyRepository.findById(otherId).orElseThrow();
+        java.util.Map<UUID, Family> babies = new java.util.LinkedHashMap<>();
+        householdBabies(current).forEach(baby -> babies.put(baby.getId(), baby));
+        householdBabies(other).forEach(baby -> babies.put(baby.getId(), baby));
+        // Linking exposes each baby's data to the combined membership: require management of every baby.
+        for (Family baby : babies.values()) {
+            FamilyMember manager = familyMemberRepository.findByFamilyIdAndUserId(baby.getId(), actorId)
+                    .orElseThrow(() -> new AccessDeniedException("Not a parent of every baby"));
+            if (!isParentOrAdmin(manager.getRole())) throw new AccessDeniedException("Only parents can link babies");
+        }
+        java.util.Map<UUID, FamilyMember> shared = new java.util.LinkedHashMap<>();
+        for (Family baby : babies.values()) {
+            for (FamilyMember member : familyMemberRepository.findByFamilyId(baby.getId())) {
+                FamilyMember previous = shared.get(member.getUser().getId());
+                if (previous != null && previous.getRole() != member.getRole())
+                    throw new IllegalArgumentException("Thành viên có quyền khác nhau giữa các hồ sơ. Hãy thống nhất quyền trước khi gộp.");
+                shared.put(member.getUser().getId(), member);
+            }
+        }
+        UUID group = current.getHouseholdId() == null ? current.getId() : current.getHouseholdId();
+        for (Family baby : babies.values()) {
+            baby.setHouseholdId(group);
+            for (FamilyMember member : shared.values()) {
+                if (!familyMemberRepository.existsByFamilyIdAndUserId(baby.getId(), member.getUser().getId())) {
+                    familyMemberRepository.save(FamilyMember.builder().family(baby).user(member.getUser()).role(member.getRole()).build());
+                }
+            }
+        }
+    }
+
+    @Transactional
+    public void updateHouseholdMember(UUID familyId, UUID actorId, UUID targetId, FamilyMember.Role role) {
+        FamilyMember actor = familyMemberRepository.findByFamilyIdAndUserId(familyId, actorId)
+                .orElseThrow(() -> new AccessDeniedException("Not a family member"));
+        if (!isParentOrAdmin(actor.getRole()) || actorId.equals(targetId))
+            throw new AccessDeniedException("Cannot manage this member");
+        for (Family baby : householdBabies(actor.getFamily())) {
+            familyMemberRepository.findByFamilyIdAndUserId(baby.getId(), targetId).ifPresent(target -> {
+                if (isParentOrAdmin(target.getRole())) throw new AccessDeniedException("Cannot change parent/admin");
+                if (role == null) familyMemberRepository.delete(target);
+                else { target.setRole(role); familyMemberRepository.save(target); }
+            });
+        }
     }
 }

@@ -15,6 +15,12 @@ public class Family {
     @Column(nullable = false, updatable = false)
     private UUID id;
 
+    @Column(name = "household_id")
+    private UUID householdId;
+
+    public UUID getHouseholdId() { return householdId; }
+    public void setHouseholdId(UUID value) { householdId = value; }
+
     @Column(name = "baby_name", nullable = false, length = 100)
     private String babyName;
 

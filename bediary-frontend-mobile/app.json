@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Bediary",
+    "slug": "bediary-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "bediary",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.bediary.app"
+    },
+    "android": {
+      "package": "com.bediary.app",
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFF7FA"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f66d3b72-9340-419f-bbe0-bf7d85075ef7"
+      }
+    },
+    "plugins": [
+      "expo-asset",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Bediary cần truy cập thư viện ảnh để chọn ảnh đại diện và giấy khám.",
+          "cameraPermission": "Bediary cần mở camera để chụp ảnh đại diện và giấy khám."
+        }
+      ],
+      "expo-notifications",
+      "expo-secure-store",
+      [
+        "@react-native-voice/voice",
+        {
+          "microphonePermission": "Bediary cần dùng micro để ba mẹ nhập nhật ký chăm sóc bé bằng giọng nói.",
+          "speechRecognitionPermission": "Bediary cần nhận dạng giọng nói để chuyển lời nói thành nội dung nhật ký."
+        }
+      ],
+      "./plugins/withSpeechRecognition",
+      "expo-status-bar",
+      "expo-font"
+    ],
+    "owner": "nhatnguyen3105"
+  }
+}

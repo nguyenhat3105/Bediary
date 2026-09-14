@@ -41,6 +41,21 @@ public class GrowthController {
         return ResponseEntity.ok(growthService.recordGrowth(request, userId, familyId));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<GrowthRecordResponse> update(@PathVariable UUID id, @RequestBody GrowthRecordRequest request, HttpServletRequest httpRequest) {
+        String token = extractToken(httpRequest);
+        UUID userId = jwtUtil.extractUserId(token);
+        return ResponseEntity.ok(growthService.updateGrowth(id, request, userId, resolveFamilyId(token, userId)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id, HttpServletRequest httpRequest) {
+        String token = extractToken(httpRequest);
+        UUID userId = jwtUtil.extractUserId(token);
+        growthService.deleteGrowth(id, userId, resolveFamilyId(token, userId));
+        return ResponseEntity.noContent().build();
+    }
+
     /** GET /api/v1/growth/history?page=0&size=20 */
     @GetMapping("/history")
     public ResponseEntity<List<GrowthRecordResponse>> getHistory(

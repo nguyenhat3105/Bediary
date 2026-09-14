@@ -81,6 +81,44 @@ public class GrowthService {
         return toResponse(growthRecordRepository.save(record));
     }
 
+    private GrowthRecord editableRecord(UUID id, UUID userId, UUID familyId) {
+        FamilyMember member = familyMemberRepository.findByFamilyIdAndUserId(familyId, userId)
+                .orElseThrow(() -> new AccessDeniedException("Not a family member"));
+        if (!canManageMedicalData(member.getRole())) throw new AccessDeniedException("Không có quyền sửa dữ liệu tăng trưởng");
+        GrowthRecord record = growthRecordRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lần đo"));
+        if (!record.getFamily().getId().equals(familyId)) throw new AccessDeniedException("Record belongs to another baby");
+        return record;
+    }
+
+    @Transactional
+    public GrowthRecordResponse updateGrowth(UUID id, GrowthRecordRequest request, UUID userId, UUID familyId) {
+        GrowthRecord record = editableRecord(id, userId, familyId);
+        if (request.weightKg() == null && request.heightCm() == null)
+            throw new IllegalArgumentException("Nhập ít nhất một chỉ số");
+        if ((request.weightKg() != null && (request.weightKg().doubleValue() < 0.5 || request.weightKg().doubleValue() > 100))
+                || (request.heightCm() != null && (request.heightCm().doubleValue() < 30 || request.heightCm().doubleValue() > 200)))
+            throw new IllegalArgumentException("Chỉ số không hợp lệ");
+        String gender = record.getFamily().getBabyGender() != null ? record.getFamily().getBabyGender().name() : "MALE";
+        var weight = whoGrowthUtil.assessWeight(record.getAgeDays(), request.weightKg(), gender);
+        var height = whoGrowthUtil.assessHeight(record.getAgeDays(), request.heightCm(), gender);
+        record.setWeightKg(request.weightKg());
+        record.setHeightCm(request.heightCm());
+        record.setWeightStatus(weight.status());
+        record.setHeightStatus(height.status());
+        record.setWeightZScore(request.weightKg() == null ? null : weight.zScore());
+        record.setHeightZScore(request.heightCm() == null ? null : height.zScore());
+        record.setWeightPercentile(request.weightKg() == null ? null : weight.percentile());
+        record.setHeightPercentile(request.heightCm() == null ? null : height.percentile());
+        record.setGrowthSource(weight.source());
+        return toResponse(growthRecordRepository.save(record));
+    }
+
+    @Transactional
+    public void deleteGrowth(UUID id, UUID userId, UUID familyId) {
+        growthRecordRepository.delete(editableRecord(id, userId, familyId));
+    }
+
     @Transactional(readOnly = true)
     public List<GrowthRecordResponse> getHistory(UUID familyId, int page, int size) {
         return growthRecordRepository
